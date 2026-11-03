@@ -19,13 +19,10 @@ Yêu cầu Node.js 22+ và MongoDB. MongoDB standalone dùng luồng ghi tuần 
 ```bash
 cp .env.example .env
 npm ci
-npm run migrate:prices
 npm start
 ```
 
 Đặt `MONGODB_URI` với database `morina-lens`, `JWT_SECRET` tối thiểu 32 ký tự, `ADMIN_USERNAME` và `ADMIN_PASSWORD` trong `.env`. App tự seed admin, cấu hình Shopee, đơn giá mỗi đơn và lương còn thiếu của staff khi khởi động. Seed chạy lại không ghi đè đơn giá đã sửa hoặc lương đã nhập thủ công. Mật khẩu cần có giá trị khi tạo tài khoản nhưng không bị giới hạn độ dài; khi sửa, để trống để giữ mật khẩu cũ. Có thể chạy riêng `npm run seed` để kiểm tra. Mặc định app nghe tại `127.0.0.1:3100`.
-
-`npm run migrate:prices` chuyển dữ liệu giá cũ sang `shopeePrice` và `tiktokPrice`. Giá F1 của từng sàn được chọn làm giá bán duy nhất; F2/F3 được giữ trong bản sao JSON tại `backups/`. Script ưu tiên giá `shopeePrice`/`tiktokPrice` đã nhập, chạy lại an toàn, bật Ads Shopee cho sản phẩm cũ để giữ cách tính trước migration và tắt Ads TikTok mặc định. Xem bản sao trước khi chạy trên môi trường khác nếu muốn chọn mức giá khác F1.
 
 ## Cách tính giá
 

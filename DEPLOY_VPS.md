@@ -2,7 +2,9 @@
 
 Repository: `https://github.com/huydinh210299/MorinaLens` · nhánh `main` · tên miền `lens.morina.click`.
 
-Workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) làm theo quy trình của Morina: kiểm tra mã, đóng gói release, tải lên VPS qua SSH, chạy migration và seed, khởi động PM2 rồi kiểm tra `/health`. MorinaLens dùng riêng `/opt/morina-lens`, cổng nội bộ `3100`, PM2 `morina-lens` và database `morina-lens`. Database production **bắt đầu trống**; workflow không sao chép dữ liệu local.
+Workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) làm theo quy trình của Morina: kiểm tra mã, đóng gói release, tải lên VPS qua SSH, chạy seed, khởi động PM2 rồi kiểm tra `/health`. MorinaLens dùng riêng `/opt/morina-lens`, cổng nội bộ `3100`, PM2 `morina-lens` và database `morina-lens`. Database production **bắt đầu trống**; workflow không sao chép dữ liệu local.
+
+Hai web chạy song song trên cùng VPS. Workflow MorinaLens không ghi vào `/opt/rental-shop`, không quản lý tiến trình PM2 `rental-shop` hoặc cổng `3000`. Site Nginx của MorinaLens chỉ nhận `lens.morina.click`; giữ nguyên site Nginx đang phục vụ Morina. Kiểm tra tài nguyên VPS trước khi chạy thêm ứng dụng.
 
 ## 1. Chuẩn bị database production
 
@@ -81,4 +83,4 @@ curl -f http://127.0.0.1:3100/health
 
 Đăng nhập admin mới, kiểm tra cấu hình Shopee, đơn giá lương 1.500 ₫ và quyền staff. Tạo sản phẩm, thử phiếu xuất của staff: chỉ khi admin duyệt mới cộng 1 đơn tính công. Lương mới là tạm tính; admin ghi nhận thanh toán tự động hoặc nhập tay trên trang nhân viên. Phiếu hoàn chỉ tăng tồn kho, không đổi báo cáo doanh thu.
 
-Mỗi lần push `main` sau khi bật variable deploy sẽ tạo release mới. Workflow chạy `npm run migrate:prices` và `npm run seed` an toàn khi lặp lại; không ghi đè cấu hình đã chỉnh. Release cũ còn trong `/opt/morina-lens/releases/` để có thể kiểm tra hoặc khôi phục thủ công.
+Mỗi lần push `main` sau khi bật variable deploy sẽ tạo release mới. Workflow chạy `npm run seed` an toàn khi lặp lại; không ghi đè cấu hình đã chỉnh. Release cũ còn trong `/opt/morina-lens/releases/` để có thể kiểm tra hoặc khôi phục thủ công.
