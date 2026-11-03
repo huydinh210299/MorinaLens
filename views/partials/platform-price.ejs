@@ -1,0 +1,22 @@
+<div class="platform-price"><% const price = item[platform + 'Price']; const p = item.pricing[platform]; const adsSetting = item.ads?.[platform]; %>
+  <% if (price === null || price === undefined) { %><span class="muted">Chưa đặt giá bán</span>
+  <% } else { %>
+    <b><%= money(price) %></b>
+    <small>Ads: <%= !adsSetting?.enabled ? 'Tắt (0%)' : p ? p.adsPercent + '%' : (adsSetting.percentOverride ?? config?.ads) == null ? 'Chưa cấu hình' : (adsSetting.percentOverride ?? config.ads) + '%' %></small>
+    <% if (!p) { %><small class="muted">Chưa đủ cấu hình phí để tính lợi nhuận.</small>
+    <% } else { %>
+      <small>Giá bán thực: <%= money(p.sale) %></small>
+      <small>Điểm hòa vốn (tổng chi phí): <%= money(p.cost) %></small>
+      <small class="<%= p.profit >= 0 ? 'positive' : 'negative' %>">Lợi nhuận: <%= money(p.profit) %></small>
+      <details class="cost-breakdown"><summary>Xem cách tính</summary><div>
+        <span>Giá nhập: <%= money(item.purchasePrice) %></span>
+        <span>Phí sàn: <%= money(p.platformFee) %></span>
+        <span>Ads: <%= money(p.ads) %></span>
+        <span>Thuế: <%= money(p.tax) %></span>
+        <span>Đóng gói: <%= money(config.packaging) %></span>
+        <span>Rủi ro: <%= money(p.risk) %></span>
+        <span>Giá cần bán để lãi 0: <%= p.breakEvenPrice === null ? 'Không xác định' : money(p.breakEvenPrice) %></span>
+      </div></details>
+    <% } %>
+  <% } %>
+</div>

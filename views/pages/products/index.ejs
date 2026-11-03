@@ -1,0 +1,22 @@
+<% const isAdmin = currentUser.role === 'admin'; %>
+<div class="page-head"><div><p class="eyebrow">Danh mục</p><h1>Sản phẩm</h1><% if (isAdmin) { %><p class="muted">Một giá bán và cấu hình Ads riêng cho Shopee, TikTok.</p><% } %></div><% if (isAdmin) { %><a class="button" href="/products/new">Thêm sản phẩm</a><% } %></div>
+<% if (isAdmin) { %><section class="panel config-strip"><h2>Cấu hình giá</h2>
+  <% for (const [platform, label, config] of [['shopee', 'Shopee', shopee], ['tiktok', 'TikTok', tiktok]]) { %>
+    <p><strong><%= label %>:</strong> <% for (const [key, meta] of Object.entries(configKeys)) { %><%= meta.label %> <%= config?.[key] === null || config?.[key] === undefined ? 'Chưa cấu hình' : (meta.unit === 'percent' ? config[key] + '%' : money(config[key])) %> · <% } %></p>
+    <% if (!hasCompleteConfig(config)) { %><p class="muted">Chưa đủ cấu hình <%= label %> để tính giá bán thực và lợi nhuận.</p><% } %>
+  <% } %>
+</section><% } %>
+<section class="panel"><% if (isAdmin) { %><p class="muted">“Điểm hòa vốn” theo file Excel là tổng chi phí tại giá bán đang nhập. Chi phí Ads là 0% khi tắt Ads cho sản phẩm trên sàn tương ứng.</p><% } %>
+  <form class="filter" method="get"><label>Tìm kiếm<input name="q" value="<%= q %>" placeholder="SKU hoặc tên sản phẩm"></label><button class="button secondary">Tìm kiếm</button></form>
+  <div class="table-wrap"><table class="<%= isAdmin ? 'product-table' : '' %>"><thead><tr><th>SKU / Tên</th><th>Tồn</th><% if (isAdmin) { %><th>Giá nhập</th><% } %><th>Giá Shopee</th><th>Giá TikTok</th><% if (isAdmin) { %><th>Tạo / Cập nhật</th><th>Thao tác</th><% } %></tr></thead><tbody>
+    <% for (const item of items) { %><tr>
+      <td><strong><%= item.sku %></strong><br><%= item.name %><% if (isAdmin && item.note) { %><br><small class="muted"><%= item.note %></small><% } %></td>
+      <td><%= item.quantity %></td><% if (isAdmin) { %><td><%= money(item.purchasePrice) %></td><% } %>
+      <td><% if (isAdmin) { %><%- include('../../partials/platform-price', { item, platform: 'shopee', config: shopee }) %><% } else { %><%= item.shopeePrice == null ? 'Chưa đặt giá' : money(item.shopeePrice) %><% } %></td>
+      <td><% if (isAdmin) { %><%- include('../../partials/platform-price', { item, platform: 'tiktok', config: tiktok }) %><% } else { %><%= item.tiktokPrice == null ? 'Chưa đặt giá' : money(item.tiktokPrice) %><% } %></td>
+      <% if (isAdmin) { %><td><small>Tạo: <%= dateTime(item.createdAt) %><br>Cập nhật: <%= dateTime(item.updatedAt) %></small></td><td class="actions-cell"><a href="/products/<%= item._id %>/edit">Chỉnh sửa</a><form method="post" action="/products/<%= item._id %>?_method=DELETE" data-confirm="Xóa sản phẩm này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form></td><% } %>
+    </tr><% } %>
+    <% if (!items.length) { %><tr><td colspan="<%= isAdmin ? 7 : 4 %>" class="empty">Không có dữ liệu</td></tr><% } %>
+  </tbody></table></div>
+  <%- include('../../partials/pagination', { base: '/products', page, total, limit, query: q ? 'q=' + encodeURIComponent(q) : '' }) %>
+</section>

@@ -1,0 +1,50 @@
+<div class="page-head">
+  <div><p class="eyebrow">Nhân sự</p><h1><%= item.username %></h1><p class="muted"><%= item.role === 'admin' ? 'Quản trị' : 'Nhân viên' %> · <%= item.active ? 'Đang hoạt động' : 'Đã khóa' %></p></div>
+  <div class="actions"><a class="button secondary" href="/users">Quay lại</a><a class="button" href="/users/<%= item._id %>/edit">Chỉnh sửa</a></div>
+</div>
+<section class="grid-two">
+  <div class="panel">
+    <h2>Đơn được tính công</h2>
+    <p class="muted">Mỗi phiếu xuất do staff tạo và được admin duyệt tự cộng 1 đơn. Chỉ dùng biểu mẫu dưới đây cho điều chỉnh thủ công để tránh tính trùng.</p>
+    <form method="post" action="/users/<%= item._id %>/orders" class="inline-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label>Ngày<input type="date" name="date" required value="<%= dateInput() %>"></label>
+      <label>Số đơn<input type="number" name="amount" min="1" step="1" required></label>
+      <button class="button">Thêm</button>
+    </form>
+    <div class="table-wrap"><table><thead><tr><th>Ngày</th><th>Số đơn</th><th>Nguồn</th><th>Cập nhật</th><th></th></tr></thead><tbody>
+      <% for (const row of [...item.orders].sort((a,b) => new Date(b.date) - new Date(a.date))) { %>
+        <tr><td><%= dateOnly(row.date) %></td><td><%= row.amount %></td><td><%= row.movement ? 'Phiếu xuất đã duyệt' : 'Thủ công' %></td><td><%= dateTime(row.updatedAt) %></td><td><% if (!row.movement) { %><form method="post" action="/users/<%= item._id %>/orders/<%= row._id %>?_method=DELETE" data-confirm="Xóa bản ghi đơn này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form><% } %></td></tr>
+      <% } %>
+      <% if (!item.orders.length) { %><tr><td colspan="5" class="empty">Không có dữ liệu</td></tr><% } %>
+    </tbody></table></div>
+    <p><strong>Tổng đơn:</strong> <%= item.orders.reduce((sum, row) => sum + row.amount, 0) %></p>
+  </div>
+  <div class="panel">
+    <h2>Lương theo tháng</h2>
+    <p class="muted">Đơn giá mặc định: <strong><%= money(defaultOrderRate) %>/đơn</strong>. Lương theo đơn là tạm tính; số tiền chỉ được ghi nhận đã trả khi admin thanh toán. Nếu có thêm đơn sau đó, phần còn lại sẽ tăng mà không đổi khoản đã trả.</p>
+    <% if (item.role === 'staff') { %>
+      <div class="payroll-payment-forms">
+        <form method="post" action="/users/<%= item._id %>/payroll/pay" class="inline-form" data-confirm="Ghi nhận thanh toán tự động phần lương còn lại của tháng này?">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="method" value="auto">
+          <label>Tháng<input type="month" name="month" required value="<%= dateInput().slice(0,7) %>"></label>
+          <button class="button">Thanh toán tự động</button>
+          <small class="muted">Trả phần còn lại theo số đơn × đơn giá cấu hình.</small>
+        </form>
+        <form method="post" action="/users/<%= item._id %>/payroll/pay" class="inline-form" data-confirm="Ghi nhận số tiền thanh toán lương nhập tay?">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="method" value="manual">
+          <label>Tháng<input type="month" name="month" required value="<%= dateInput().slice(0,7) %>"></label>
+          <label>Số tiền thanh toán (₫)<input type="number" name="amount" min="1" step="1" required></label>
+          <button class="button secondary">Thanh toán nhập tay</button>
+        </form>
+      </div>
+    <% } %>
+    <div class="table-wrap"><table><thead><tr><th>Tháng</th><th>Số đơn</th><th>Đơn giá</th><th>Tạm tính</th><th>Đã thanh toán</th><th>Trạng thái</th></tr></thead><tbody>
+      <% for (const row of [...item.payroll].sort((a,b) => b.month.localeCompare(a.month))) { %>
+        <% const remaining = row.amount - row.paidTotal; %>
+        <tr><td><%= row.month %><% if (row.payments?.length) { %><details class="payment-history"><summary><%= row.payments.length %> lần thanh toán</summary><ul><% for (const payment of row.payments) { %><li><%= money(payment.amount) %> · <%= payment.method === 'auto' ? 'Tự động' : 'Nhập tay' %> · <%= dateTime(payment.paidAt) %> · <%= payment.paidBy?.username || 'Admin' %></li><% } %></ul></details><% } %><% if (row.note) { %><small class="muted"><%= row.note %></small><% } %></td><td><%= row.orderCount ?? 0 %></td><td><%= row.ratePerOrder === null || row.ratePerOrder === undefined ? 'Thủ công' : money(row.ratePerOrder) %><% if (row.usesDefaultRate) { %><br><small class="muted">Mặc định</small><% } %></td><td><%= money(row.amount) %></td><td><%= money(row.paidTotal) %></td><td class="<%= remaining > 0 ? 'negative' : 'positive' %>"><%= remaining > 0 ? 'Còn ' + money(remaining) : row.payments?.length ? 'Đã thanh toán' : 'Chưa thanh toán' %><% if (remaining < 0) { %><br><small>Đã trả cao hơn tạm tính <%= money(-remaining) %></small><% } %></td></tr>
+      <% } %>
+      <% if (!item.payroll.length) { %><tr><td colspan="6" class="empty">Không có dữ liệu</td></tr><% } %>
+    </tbody></table></div>
+  </div>
+</section>

@@ -1,0 +1,20 @@
+<div class="page-head"><div><p class="eyebrow">Danh mục</p><h1><%= title %></h1></div><a class="button secondary" href="/products">Quay lại</a></div>
+<section class="panel"><form class="stack" method="post" action="<%= item ? '/products/' + item._id + '?_method=PUT' : '/products' %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="form-grid">
+    <label>SKU<input name="sku" required maxlength="60" value="<%= item?.sku || '' %>" placeholder="VD: LENS-001"></label>
+    <label>Tên sản phẩm<input name="name" required maxlength="150" value="<%= item?.name || '' %>"></label>
+    <label>Giá nhập (₫)<input type="number" name="purchasePrice" required min="0" step="any" value="<%= item?.purchasePrice ?? '' %>"></label>
+    <label><%= item ? 'Số lượng tồn kho' : 'Tồn đầu kỳ' %><input type="number" name="quantity" required min="0" step="1" value="<%= item?.quantity ?? 0 %>"><% if (item) { %><small>Thay đổi số lượng sẽ tạo phiếu điều chỉnh kho tự động.</small><% } %></label>
+  </div>
+  <% if (item) { %><input type="hidden" name="expectedQuantity" value="<%= item.quantity %>"><% } %>
+  <% for (const [platform, label] of [['shopee', 'Shopee'], ['tiktok', 'TikTok']]) { %>
+    <div class="platform-block"><h2><%= label %></h2><div class="form-grid">
+      <label>Giá bán <%= label %> (₫)<input type="number" name="<%= platform %>Price" min="0" step="any" value="<%= item?.[platform + 'Price'] ?? '' %>"></label>
+      <label>Tỷ lệ Ads riêng (%)<input type="number" name="ads[<%= platform %>][percentOverride]" min="0" max="100" step="any" value="<%= item?.ads?.[platform]?.percentOverride ?? '' %>" placeholder="Để trống dùng cấu hình sàn"><small>Để trống: <%= adsDefaults[platform] == null ? 'chưa có cấu hình Ads' : adsDefaults[platform] + '%' %> theo cấu hình sàn. Nhập 0: tính Ads 0%.</small></label>
+      <label class="check"><input type="checkbox" name="ads[<%= platform %>][enabled]" <%= item?.ads?.[platform]?.enabled ? 'checked' : '' %>> Chạy Ads trên <%= label %></label>
+    </div><small class="muted">Nếu bật Ads và bỏ trống tỷ lệ riêng, hệ thống dùng tỷ lệ trong cấu hình <%= label %>. Nếu tắt, chi phí Ads của sản phẩm là 0%.</small></div>
+  <% } %>
+  <label>Ghi chú<textarea name="note" rows="3" maxlength="500"><%= item?.note || '' %></textarea></label>
+  <div class="actions"><button class="button"><%= item ? 'Cập nhật' : 'Lưu' %></button><a class="button secondary" href="/products">Hủy</a></div>
+</form></section>

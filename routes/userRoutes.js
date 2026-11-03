@@ -1,0 +1,18 @@
+const router = require("express").Router();
+const controller = require("../controllers/userController");
+const { adminOnly } = require("../middleware/auth");
+const { wrap } = require("../middleware/errors");
+router.use(adminOnly);
+router.get("/", wrap(controller.index));
+router.get("/new", wrap(controller.form));
+router.post("/", wrap(controller.create));
+router.get("/:id", wrap(controller.detail));
+router.get("/:id/edit", wrap(controller.form));
+router.put("/:id", wrap(controller.update));
+router.delete("/:id", wrap(controller.remove));
+router.post("/:id/orders", wrap(controller.addOrder));
+router.delete("/:id/orders/:entryId", wrap(controller.removeOrder));
+router.post("/:id/payroll", wrap(controller.savePayroll));
+router.post("/:id/payroll/pay", wrap(controller.payPayroll));
+router.delete("/:id/payroll/:entryId", wrap(controller.removePayroll));
+module.exports = router;

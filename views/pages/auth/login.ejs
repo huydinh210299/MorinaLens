@@ -1,0 +1,7 @@
+<section class="panel narrow login"><p class="eyebrow">Quản lý shop lens</p><h1>Đăng nhập MorinaLens</h1>
+  <form method="post" action="/auth/login" class="stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Tên đăng nhập<input name="username" required autocomplete="username" maxlength="60"></label>
+    <label>Mật khẩu<input name="password" type="password" required autocomplete="current-password"></label>
+    <button class="button">Đăng nhập</button>
+  </form>
+</section>

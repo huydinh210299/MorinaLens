@@ -1,0 +1,12 @@
+const router = require("express").Router();
+const controller = require("../controllers/productController");
+const { requireAuth, adminOnly } = require("../middleware/auth");
+const { wrap } = require("../middleware/errors");
+router.use(requireAuth);
+router.get("/", wrap(controller.index));
+router.get("/new", adminOnly, wrap(controller.form));
+router.post("/", adminOnly, wrap(controller.create));
+router.get("/:id/edit", adminOnly, wrap(controller.form));
+router.put("/:id", adminOnly, wrap(controller.update));
+router.delete("/:id", adminOnly, wrap(controller.remove));
+module.exports = router;

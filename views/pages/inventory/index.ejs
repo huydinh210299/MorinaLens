@@ -1,0 +1,32 @@
+<div class="page-head">
+  <div><p class="eyebrow">Kho hàng</p><h1>Nhập, xuất, hoàn hàng</h1><p class="muted">Mỗi phiếu có thể chứa nhiều SKU. Nhập và hoàn cộng tồn; xuất trừ tồn.</p></div>
+  <a class="button" href="/inventory/new">Tạo phiếu kho</a>
+</div>
+<section class="panel">
+  <p class="muted">Phiếu xuất và hoàn do staff tạo sẽ chờ admin duyệt. Chỉ phiếu xuất đã duyệt mới cộng 1 đơn để tính lương; phiếu hoàn không cộng hoặc trừ đơn.</p>
+  <form method="get" class="filter">
+    <label>Loại phiếu<select name="type"><option value="">Tất cả</option><option value="import" <%= type === 'import' ? 'selected' : '' %>>Nhập</option><option value="export" <%= type === 'export' ? 'selected' : '' %>>Xuất</option><option value="return" <%= type === 'return' ? 'selected' : '' %>>Hoàn hàng</option></select></label>
+    <label>Sàn<select name="platform"><option value="">Cả hai sàn</option><option value="shopee" <%= platform === 'shopee' ? 'selected' : '' %>>Shopee</option><option value="tiktok" <%= platform === 'tiktok' ? 'selected' : '' %>>TikTok</option></select></label>
+    <label>Duyệt<select name="status"><option value="">Tất cả</option><option value="pending" <%= status === 'pending' ? 'selected' : '' %>>Chờ duyệt</option><option value="approved" <%= status === 'approved' ? 'selected' : '' %>>Đã duyệt</option></select></label>
+    <button class="button secondary">Lọc</button>
+  </form>
+  <div class="table-wrap"><table><thead><tr><th>Ngày</th><th>Loại / Sàn</th><th>Sản phẩm</th><th>Người tạo</th><th>Duyệt / Tính công</th><th>Tạo / Cập nhật</th><% if (currentUser.role === 'admin') { %><th>Thao tác</th><% } %></tr></thead><tbody>
+    <% for (const item of items) { %>
+      <tr>
+        <td><%= dateOnly(item.date) %></td>
+        <td><span class="badge <%= item.type %>"><%= { import: 'Nhập', export: 'Xuất', return: 'Hoàn hàng' }[item.type] %></span><br><small><%= item.platform === 'tiktok' ? 'TikTok' : 'Shopee' %></small><% if (item.source === 'product_update') { %><br><small class="muted">Điều chỉnh từ sản phẩm</small><% } %></td>
+        <td><% for (const row of item.items) { %><div><strong><%= row.sku %></strong> × <%= row.amount %><% if (currentUser.role === 'admin' && row.saleSnapshot) { %><br><small>Giá bán: <%= money(row.saleSnapshot.listPrice) %> · Ads: <%= row.saleSnapshot.adsPercentApplied %>%</small><br><small>Doanh thu dự tính: <%= money(row.saleSnapshot.unitRevenue * row.amount) %> · Lợi nhuận dự tính: <%= money(row.saleSnapshot.unitProfit * row.amount) %></small><% } %></div><% } %><% if (item.note) { %><small class="muted"><%= item.note %></small><% } %></td>
+        <td><%= item.createdBy?.username || '—' %></td>
+        <td><span class="badge <%= item.approvalStatus || 'approved' %>"><%= item.approvalStatus === 'pending' ? 'Chờ duyệt' : 'Đã duyệt' %></span><br><small class="muted"><% if (item.requiresApproval && item.approvalStatus === 'approved' && item.type === 'export') { %>Cộng 1 đơn tính lương<% } else if (item.type === 'return') { %>Không cộng/trừ đơn<% } else { %>Không tính công<% } %></small><% if (item.approvedBy) { %><br><small><%= item.approvedBy.username %> · <%= dateTime(item.approvedAt) %></small><% } %></td>
+        <td><small>Tạo: <%= dateTime(item.createdAt) %><br>Cập nhật: <%= dateTime(item.updatedAt) %></small></td>
+        <% if (currentUser.role === 'admin') { %><td class="actions-cell">
+          <% if (item.approvalStatus === 'pending') { %><form method="post" action="/inventory/<%= item._id %>/approve" data-confirm="Duyệt phiếu này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="button">Duyệt</button></form><% } %>
+          <a href="/inventory/<%= item._id %>/edit">Chỉnh sửa</a>
+          <form method="post" action="/inventory/<%= item._id %>?_method=DELETE" data-confirm="Xóa phiếu và đảo số lượng tồn kho?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form>
+        </td><% } %>
+      </tr>
+    <% } %>
+    <% if (!items.length) { %><tr><td colspan="<%= currentUser.role === 'admin' ? 7 : 6 %>" class="empty">Không có dữ liệu</td></tr><% } %>
+  </tbody></table></div>
+  <%- include('../../partials/pagination', { base: '/inventory', page, total, limit, query: [type ? 'type=' + type : '', platform ? 'platform=' + platform : '', status ? 'status=' + status : ''].filter(Boolean).join('&') }) %>
+</section>

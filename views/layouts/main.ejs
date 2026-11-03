@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | MorinaLens</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <header class="topbar"><div class="container nav">
+    <a class="brand" href="/dashboard">Morina<span>Lens</span></a>
+    <% if (currentUser) { %>
+      <nav aria-label="Điều hướng chính">
+        <a href="/dashboard">Tổng quan</a><a href="/products">Sản phẩm</a><a href="/inventory">Nhập xuất kho</a>
+        <% if (currentUser.role === 'admin') { %><a href="/revenue">Doanh thu</a><a href="/users">Nhân viên</a><a href="/configuration">Cấu hình</a><% } %>
+      </nav>
+      <div class="account"><span><%= currentUser.username %> · <%= currentUser.role === 'admin' ? 'Quản trị' : 'Nhân viên' %></span><form method="post" action="/auth/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button">Đăng xuất</button></form></div>
+    <% } %>
+  </div></header>
+  <main class="container main">
+    <% if (message) { %><div class="alert success"><%= message %></div><% } %>
+    <% if (error) { %><div class="alert error"><%= error %></div><% } %>
+    <%- body %>
+  </main>
+  <script src="/js/app.js" defer></script>
+</body>
+</html>
