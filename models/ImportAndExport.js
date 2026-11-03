@@ -1,6 +1,14 @@
 const mongoose = require("mongoose");
+const { keys } = require("../utils/configuration");
+const configSnapshotSchema = new mongoose.Schema(Object.fromEntries(
+  Object.entries(keys).map(([key, meta]) => [key, {
+    type: Number, required: true, min: 0, ...(meta.unit === "percent" ? { max: 100 } : {})
+  }])
+), { _id: false });
 const saleSnapshotSchema = new mongoose.Schema({
   listPrice: { type: Number, required: true, min: 0 },
+  purchasePrice: { type: Number, default: null, min: 0 },
+  config: { type: configSnapshotSchema, default: null },
   unitRevenue: { type: Number, required: true },
   unitCost: { type: Number, required: true },
   unitProfit: { type: Number, required: true },

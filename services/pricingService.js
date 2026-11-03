@@ -1,8 +1,8 @@
 const Configuration = require("../models/Configuration");
 const { keys } = require("../utils/configuration");
 
-async function getConfig(platform = "shopee") {
-  const rows = await Configuration.find({ platform }).lean();
+async function getConfig(platform = "shopee", session = null) {
+  const rows = await Configuration.find({ platform }).session(session).lean();
   if (platform === "tiktok" && rows.length === 0) return null;
   const result = Object.fromEntries(Object.entries(keys).map(([key, meta]) => [key, platform === "shopee" ? meta.defaultValue : null]));
   for (const row of rows) result[row.key] = row.value;
@@ -13,7 +13,8 @@ function calculate(price, purchasePrice, config, adsOverride = null) {
   if (price === null || price === undefined || !hasCompleteConfig(config)) return null;
   const rates = Object.fromEntries(["tax", "transactionFee", "fixedFee", "voucherExtra", "ads", "risk", "shopVoucher"].map((key) => [key, config[key] / 100]));
   if (adsOverride !== null) rates.ads = adsOverride / 100;
-  const sale = price * (1 - rates.shopVoucher) * (1 + rates.tax);
+  // Giá bán đã gồm thuế; thuế chỉ được trừ một lần trong chi phí.
+  const sale = price * (1 - rates.shopVoucher);
   const platformFee = sale * (rates.transactionFee + rates.fixedFee + rates.voucherExtra) + config.infrastructureFee + config.piShip;
   const ads = sale * rates.ads;
   const tax = (sale - platformFee) * rates.tax;
@@ -22,7 +23,7 @@ function calculate(price, purchasePrice, config, adsOverride = null) {
   const contributionRate = 1 - (rates.transactionFee + rates.fixedFee + rates.voucherExtra) - rates.ads - rates.risk - (1 - rates.transactionFee - rates.fixedFee - rates.voucherExtra) * rates.tax;
   const fixedCost = purchasePrice + (config.infrastructureFee + config.piShip) * (1 - rates.tax) + config.packaging;
   const breakEvenSale = contributionRate > 0 ? fixedCost / contributionRate : null;
-  const breakEvenPrice = breakEvenSale === null || rates.shopVoucher >= 1 ? null : breakEvenSale / ((1 - rates.shopVoucher) * (1 + rates.tax));
+  const breakEvenPrice = breakEvenSale === null || rates.shopVoucher >= 1 ? null : breakEvenSale / (1 - rates.shopVoucher);
   return { sale, platformFee, ads, adsPercent: rates.ads * 100, tax, risk, cost, profit: sale - cost, breakEvenPrice };
 }
 

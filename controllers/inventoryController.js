@@ -11,7 +11,7 @@ async function index(req, res) {
   const filter = { ...(type ? { type } : {}), ...(status ? { approvalStatus: status } : {}), ...(platform ? { platform } : {}) };
   const currentPage = page(req.query.page), limit = 20;
   const listQuery = Movement.find(filter).populate("createdBy", "username").populate("approvedBy", "username")
-    .sort({ date: -1, createdAt: -1 }).skip((currentPage - 1) * limit).limit(limit);
+    .sort({ createdAt: -1, _id: -1 }).skip((currentPage - 1) * limit).limit(limit);
   if (req.user.role !== "admin") listQuery.select("-items.saleSnapshot");
   const [items, total] = await Promise.all([
     listQuery.lean(),

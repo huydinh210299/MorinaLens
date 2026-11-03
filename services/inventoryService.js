@@ -48,20 +48,24 @@ async function prepareSaleItems(data, session, previous = null) {
     for (const item of data.items) item.saleSnapshot = null;
     return;
   }
-  const config = await pricing.getConfig(data.platform);
-  if (!pricing.hasCompleteConfig(config)) throw new AppError(`Chưa đủ cấu hình phí ${data.platform === "shopee" ? "Shopee" : "TikTok"} để tính doanh thu và lợi nhuận.`);
+  let config;
   for (const item of data.items) {
     const oldItem = previous?.items.find((row) => row.sku === item.sku);
     if (previous?.type === "export" && previous.platform === data.platform && oldItem?.saleSnapshot) {
       item.saleSnapshot = oldItem.saleSnapshot.toObject ? oldItem.saleSnapshot.toObject() : oldItem.saleSnapshot;
       continue;
     }
+    if (!config) {
+      config = await pricing.getConfig(data.platform, session);
+      if (!pricing.hasCompleteConfig(config)) throw new AppError(`Chưa đủ cấu hình phí ${data.platform === "shopee" ? "Shopee" : "TikTok"} để tính doanh thu và lợi nhuận.`);
+    }
     const product = await Product.findOne({ sku: item.sku }).session(session);
     if (!product) throw new AppError(`Không tìm thấy SKU ${item.sku}.`);
     const price = data.platform === "shopee" ? product.shopeePrice : product.tiktokPrice;
     if (price === null || price === undefined) throw new AppError(`SKU ${item.sku} chưa có giá bán trên sàn ${data.platform === "shopee" ? "Shopee" : "TikTok"}.`);
     const result = pricing.calculateProduct(product, config, data.platform);
-    item.saleSnapshot = { listPrice: price, unitRevenue: result.sale, unitCost: result.cost, unitProfit: result.profit, adsPercentApplied: result.adsPercent };
+    item.saleSnapshot = { listPrice: price, purchasePrice: product.purchasePrice, config: { ...config },
+      unitRevenue: result.sale, unitCost: result.cost, unitProfit: result.profit, adsPercentApplied: result.adsPercent };
   }
 }
 

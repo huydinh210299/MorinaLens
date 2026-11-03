@@ -26,10 +26,10 @@ npm start
 
 ## Cách tính giá
 
-Nguồn công thức Shopee: `Tính giá lens/tinh-gia-shopee-ads-15pct.xlsx`. Mỗi sàn dùng giá bán và bộ cấu hình phí riêng. Với một giá bán:
+Nguồn công thức phí Shopee: `Tính giá lens/tinh-gia-shopee-ads-15pct.xlsx`. Mỗi sàn dùng giá bán và bộ cấu hình phí riêng. Giá bán nhập vào đã bao gồm thuế; ứng dụng không cộng thuế vào doanh thu. Với một giá bán:
 
 ```text
-Giá bán thực = giá bán × (1 − voucher shop %) × (1 + thuế %)
+Giá bán thực (doanh thu) = giá bán × (1 − voucher shop %)
 Phí sàn = Giá bán thực × (xử lý giao dịch + phí cố định + voucher extra) + phí hạ tầng + Pi ship
 Ads = Giá bán thực × Ads %
 Thuế phải trả = (Giá bán thực − phí sàn) × thuế %
@@ -38,15 +38,17 @@ Tổng chi phí tại giá này = giá nhập + phí sàn + Ads + thuế phải 
 Lợi nhuận = Giá bán thực − tổng chi phí tại giá này
 ```
 
-File Excel gọi **tổng chi phí tại giá bán đang nhập** là “Điểm hòa vốn”; giao diện hiển thị chỉ số này cho mỗi sàn. Vì phí sàn, Ads, thuế và rủi ro phụ thuộc vào giá bán, tổng chi phí thay đổi theo giá bán. Một chỉ số khác là **giá cần bán để lợi nhuận bằng 0**; ứng dụng chỉ hiển thị mức giá này trong phần “Xem cách tính” để không nhầm với “Điểm hòa vốn” theo Excel. File Excel không dùng cột voucher shop trong công thức; ứng dụng áp voucher shop như tỷ lệ giảm vào giá bán trước khi cộng thuế. Giá mặc định voucher shop = 0 nên kết quả không đổi. Cấu hình mặc định dùng đóng gói 2.500 ₫ và chi phí rủi ro 1,5%; ô ví dụ trong Excel dùng đóng gói 2.000 ₫.
+File Excel gọi **tổng chi phí tại giá bán đang nhập** là “Điểm hòa vốn”; giao diện hiển thị chỉ số này cho mỗi sàn. Vì phí sàn, Ads, thuế và rủi ro phụ thuộc vào giá bán, tổng chi phí thay đổi theo giá bán. Một chỉ số khác là **giá cần bán để lợi nhuận bằng 0**; ứng dụng chỉ hiển thị mức giá này trong phần “Xem cách tính”. Khác công thức Excel ban đầu, ứng dụng dùng giá bán đã gồm thuế, áp voucher shop trước khi tính phí và chỉ trừ thuế trong chi phí để tính lợi nhuận. Cấu hình mặc định dùng đóng gói 2.500 ₫ và chi phí rủi ro 1,5%.
 
 Phiếu xuất tự lấy Ads từ sản phẩm trên sàn đã chọn. Sản phẩm bật Ads sẽ dùng tỷ lệ riêng nếu có, nếu để trống dùng cấu hình sàn; nhập tỷ lệ riêng `0` nghĩa là Ads 0%. Sản phẩm tắt Ads luôn tính 0%. Tỷ lệ đã dùng được lưu trong từng dòng phiếu xuất.
 
 ## Báo cáo doanh thu
 
-Mỗi dòng phiếu **xuất** dùng giá bán và Ads của sản phẩm trên sàn đã chọn. Hệ thống lưu ảnh chụp giá bán thực, tổng chi phí và lợi nhuận trên từng đơn vị tại lúc tạo phiếu. Báo cáo tháng chỉ cộng phiếu xuất **đã duyệt** theo ngày phiếu; phiếu chờ duyệt, phiếu hoàn và phiếu điều chỉnh tồn từ trang sản phẩm không ảnh hưởng báo cáo. Nếu sửa số lượng trên phiếu, ảnh chụp đơn giá được giữ; đổi SKU hoặc sàn sẽ tính lại. Các phiếu cũ không có ảnh chụp giá được báo riêng và không bị gán doanh thu giả. Đây là số liệu **dự tính theo giá bán**, chưa phải tiền thực nhận từ sàn.
+Mỗi dòng phiếu **xuất** dùng giá bán và Ads của sản phẩm trên sàn đã chọn. Hệ thống lưu `items[].saleSnapshot` gồm giá bán (`listPrice`), giá nhập (`purchasePrice`), tỷ lệ Ads thực tế (`adsPercentApplied`), giá bán thực, tổng chi phí và lợi nhuận trên từng đơn vị tại lúc tạo phiếu. Toàn bộ 10 cấu hình phí của sàn nằm chung trong object `saleSnapshot.config`, không trải thành các field riêng trên phiếu hay sản phẩm. Có thể tính lại bằng `pricing.calculate(listPrice, purchasePrice, config, adsPercentApplied)`, kể cả sau khi sửa cấu hình hoặc giá sản phẩm. Báo cáo tháng chỉ cộng phiếu xuất **đã duyệt** theo ngày phiếu; phiếu chờ duyệt, phiếu hoàn và phiếu điều chỉnh tồn từ trang sản phẩm không ảnh hưởng báo cáo. Nếu sửa số lượng trên phiếu, ảnh chụp đơn giá và cấu hình được giữ; thêm SKU hoặc đổi sàn sẽ lấy giá và cấu hình hiện tại. Phiếu cũ giữ nguyên dữ liệu đã lưu, không tự điền cấu hình hiện tại vào lịch sử; các dòng không có ảnh chụp giá được báo riêng và không bị gán doanh thu giả. Đây là số liệu **dự tính theo giá bán**, chưa phải tiền thực nhận từ sàn.
 
 ## Lưu ý kho
+
+Để cập nhật các snapshot dùng công thức cũ trên **local**, chạy `node scripts/recalculate-local-sales.js` để xem trước, sau đó thêm `--apply` để ghi. Script chỉ kết nối MongoDB local/database `morina-lens`, sao lưu phiếu gốc vào `backups/` trước khi ghi và không đổi tồn kho, công hoặc thời điểm tạo phiếu. Phiếu thiếu đầu vào lịch sử chỉ được cập nhật nếu giá nhập và cấu hình hiện tại tái hiện khớp cả doanh thu, chi phí và lợi nhuận cũ. Chạy lại không thay đổi các snapshot đã cập nhật.
 
 Tồn đầu kỳ nhập khi tạo sản phẩm. Sau đó có thể thay đổi bằng phiếu kho hoặc sửa trực tiếp trong form sản phẩm; cách sửa trực tiếp sẽ ghi một phiếu nhập/xuất điều chỉnh tự động. Nếu tồn kho thay đổi trong lúc admin đang mở form, hệ thống yêu cầu tải lại để tránh ghi đè thao tác mới. Không thể xóa sản phẩm đã có lịch sử kho. Trên MongoDB standalone, app ghi tuần tự và cố gắng hoàn tác khi có lỗi; để đảm bảo tính nguyên tử giữa nhiều bản ghi trong production, dùng MongoDB Atlas hoặc replica set.
 

@@ -17,19 +17,35 @@ test("Ads riêng và voucher shop ảnh hưởng đến lợi nhuận", () => {
   assert.ok(calculate(50000, 10000, config, 20).profit < base.profit);
   assert.ok(calculate(50000, 10000, { ...config, shopVoucher: 10 }).profit < base.profit);
 });
-test("khớp dòng ví dụ trong file Excel khi dùng tham số của chính file", () => {
-  const excel = { ...config, packaging: 2000 };
-  const result = calculate(33168, 3200, excel);
-  assert.ok(Math.abs(result.cost - 23665.546702) < 0.000001);
-  assert.ok(Math.abs(result.profit - 9999.973298) < 0.000001);
+test("giá bán đã gồm thuế, thuế được trừ trong lợi nhuận thay vì cộng vào doanh thu", () => {
+  const result = calculate(75000, 25000, config);
+  assert.equal(result.sale, 75000);
+  assert.ok(Math.abs(result.platformFee - 24375) < 1e-6);
+  assert.ok(Math.abs(result.tax - 759.375) < 1e-6);
+  assert.equal(result.ads, 11250);
+  assert.equal(result.cost, 65009.375);
+  assert.equal(result.profit, 9990.625);
+  assert.equal(result.profit, result.sale - result.cost);
+  const withoutTax = calculate(75000, 25000, { ...config, tax: 0 });
+  assert.equal(result.sale, withoutTax.sale);
+  assert.ok(Math.abs(withoutTax.profit - result.profit - result.tax) < 1e-6);
+});
+
+test("voucher giảm doanh thu trước khi tính phí, thuế và giá hòa vốn", () => {
+  const discounted = { ...config, shopVoucher: 10 };
+  const result = calculate(75000, 25000, discounted);
+  assert.equal(result.sale, 67500);
+  assert.ok(Math.abs(calculate(result.breakEvenPrice, 25000, discounted).profit) < 1e-6);
+  assert.equal(calculate(75000, 25000, { ...config, shopVoucher: 100 }).sale, 0);
+  assert.equal(calculate(75000, 25000, { ...config, shopVoucher: 100 }).breakEvenPrice, null);
 });
 test("mỗi sàn dùng một giá và Ads riêng", () => {
   const product = { purchasePrice: 10000, shopeePrice: 50000, tiktokPrice: 60000,
     ads: { shopee: { enabled: true, percentOverride: null }, tiktok: { enabled: false, percentOverride: null } } };
-  assert.ok(Math.abs(calculateProduct(product, config, "shopee").sale - 50750) < 0.000001);
+  assert.equal(calculateProduct(product, config, "shopee").sale, 50000);
   assert.equal(calculateProduct(product, config, "shopee").adsPercent, 15);
   assert.equal(calculateProduct(product, null, "tiktok"), null);
-  assert.ok(Math.abs(calculateProduct(product, config, "tiktok").sale - 60900) < 0.000001);
+  assert.equal(calculateProduct(product, config, "tiktok").sale, 60000);
   assert.equal(calculateProduct(product, config, "tiktok").adsPercent, 0);
   product.ads.tiktok = { enabled: true, percentOverride: 8 };
   assert.equal(calculateProduct(product, config, "tiktok").adsPercent, 8);
