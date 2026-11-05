@@ -1,0 +1,73 @@
+<% const p = example.result; const c = example.config; %>
+<div class="page-head"><div><p class="eyebrow">Sổ tay MorinaLens</p><h1>Hướng dẫn phí và lợi nhuận</h1><p class="muted">Hiểu từng khoản bị trừ, tiền nhận từ sàn và cách ứng dụng ước tính lợi nhuận.</p></div><a class="button secondary" href="/configuration">Mở cấu hình</a></div>
+<nav class="guide-nav" aria-label="Mục lục hướng dẫn"><a href="#dong-tien">Hiểu dòng tiền</a><a href="#cac-loai-phi">Các loại phí</a><a href="#vi-du">Ví dụ Shopee</a><a href="#voucher">Nhập voucher</a><a href="#luu-y">Lưu ý khi sử dụng</a></nav>
+
+<section class="panel guide" id="dong-tien"><h2>1. Từ giá bán đến lợi nhuận</h2>
+  <ol class="guide-steps">
+    <li><strong>Giá bán → Doanh thu:</strong> trừ số tiền voucher shop (trợ giá của shop). Giá nhập vào đã gồm thuế, không cộng thêm thuế vào giá.</li>
+    <li><strong>Doanh thu → Thực nhận ước tính:</strong> trừ phí sàn và thuế. Đây là khoản tương ứng dòng “Doanh thu đơn hàng ước tính” trên Shopee.</li>
+    <li><strong>Thực nhận → Lợi nhuận:</strong> trừ Ads, giá nhập, đóng gói và dự phòng rủi ro. Tiền nhận từ sàn chưa phải lợi nhuận.</li>
+  </ol>
+  <p class="guide-note">Trong báo cáo MorinaLens, “Doanh thu” là giá sau voucher shop, trước phí sàn và thuế. Ads được tính trên <strong>thực nhận ước tính sau phí sàn và thuế</strong>.</p>
+</section>
+
+<section class="panel guide" id="cac-loai-phi"><h2>2. Mỗi khoản phí được tính như thế nào?</h2>
+  <p>Bảng dưới hiển thị cấu hình đang dùng của shop. Thay đổi các mức này tại <a href="/configuration">Cấu hình</a>; TikTok cần nhập đủ các khoản trước khi tính lợi nhuận.</p>
+  <% const explanations = {
+    tax: ['% doanh thu', 'Tính trên doanh thu sau voucher shop, trước khi trừ phí sàn. Với cấu hình 1,5%, ứng dụng tách GTGT 1% và TNCN 0,5%, làm tròn từng khoản.'],
+    transactionFee: ['% doanh thu', 'Phí xử lý giao dịch của sàn, tính trên giá sau voucher shop trong phép ước tính hiện tại.'],
+    fixedFee: ['% doanh thu', 'Phí hoa hồng theo tỷ lệ cấu hình của sàn/ngành hàng. Tên “cố định” không có nghĩa là số tiền cố định cho mỗi đơn.'],
+    voucherExtra: ['% doanh thu', 'Phí tham gia gói Voucher Xtra, tách biệt với tiền voucher do shop giảm cho khách. Trong đơn mẫu, gói đã đăng ký và Shopee bù toàn bộ phí vận chuyển.'],
+    infrastructureFee: ['Số tiền ₫', 'Phí hạ tầng. Đơn mẫu là 3.000đ; khoản này cộng vào phí sàn, không nhân phần trăm doanh thu.'],
+    piShip: ['Số tiền ₫', 'Khoản vận chuyển bổ sung shop chịu theo cấu hình. Để 0 nếu không phát sinh; không nhập lại phần ship đã được Shopee bù.'],
+    ads: ['% thực nhận', 'Chi phí quảng cáo dự tính = tỷ lệ Ads × tiền thực nhận sau phí sàn và thuế. Đây là dự toán, không phải số tiền quảng cáo thực tế Shopee đã thu.'],
+    packaging: ['Số tiền ₫', 'Chi phí đóng gói do shop tự chi, như túi, hộp và vật liệu bảo vệ. Không nằm trong phụ phí Shopee.'],
+    risk: ['% doanh thu', 'Khoản dự phòng rủi ro của shop, tính trên doanh thu sau voucher. Không phải khoản Shopee thu trực tiếp.'],
+    shopVoucher: ['Số tiền ₫', 'Tiền shop giảm cho khách, chính là trợ giá của shop. Trừ một lần khỏi giá bán trước khi tính phí và thuế; không trừ thêm lần nữa vào chi phí.']
+  }; %>
+  <div class="table-wrap"><table class="guide-fees"><caption class="muted">Cấu hình hiện tại của từng sàn</caption><thead><tr><th scope="col">Khoản</th><th scope="col">Cơ sở tính</th><th scope="col">Ý nghĩa</th><th scope="col">Shopee</th><th scope="col">TikTok</th></tr></thead><tbody>
+  <% for (const [key, meta] of Object.entries(keys)) { %><tr><th scope="row"><%= meta.label %></th><td><%= explanations[key][0] %></td><td><%= explanations[key][1] %></td><% for (const config of [shopee, tiktok]) { %><td class="guide-amount"><%= config?.[key] == null ? 'Chưa cấu hình' : meta.unit === 'percent' ? config[key] + '%' : money(config[key]) %></td><% } %></tr><% } %>
+  </tbody></table></div>
+  <p class="guide-note"><strong>“Phụ phí” là dòng tổng:</strong> phí cố định + phí dịch vụ + phí xử lý giao dịch. Trong đơn mẫu, phí dịch vụ gồm Voucher Xtra và hạ tầng. Không cộng dòng tổng và các dòng con thêm lần nữa. Thuế và voucher shop nằm riêng.</p>
+</section>
+
+<section class="panel guide" id="vi-du"><h2>3. Ví dụ: đơn Shopee giá <%= money(example.price) %></h2>
+  <p>Ví dụ cố định theo ảnh đơn hàng: voucher shop <%= money(c.shopVoucher) %>, phí cố định <%= c.fixedFee %>%, Voucher Xtra <%= c.voucherExtra %>%, xử lý giao dịch <%= c.transactionFee %>%, thuế <%= c.tax %>%. Để minh họa lợi nhuận, giả sử giá nhập <%= money(example.purchasePrice) %>, Ads <%= c.ads %>%, đóng gói <%= money(c.packaging) %> và rủi ro <%= c.risk %>%.</p>
+  <p class="muted">Đây là ví dụ riêng, không thay đổi cấu hình của shop. Voucher shop đang cấu hình có thể là 0đ.</p>
+  <div class="guide-summary"><div><span>Doanh thu sau voucher</span><strong><%= money(p.sale) %></strong></div><div><span>Thực nhận từ sàn ước tính</span><strong><%= money(p.estimatedPayout) %></strong></div><div><span>Lợi nhuận sau mọi chi phí</span><strong><%= preciseMoney(p.profit) %></strong></div></div>
+  <div class="table-wrap"><table class="guide-example"><caption class="muted">Tính từng bước, làm tròn riêng phí sàn và thuế đến đồng</caption><thead><tr><th scope="col">Bước</th><th scope="col">Phép tính</th><th scope="col">Kết quả</th></tr></thead><tbody>
+    <tr><th scope="row">Doanh thu</th><td><%= money(example.price) %> − <%= money(c.shopVoucher) %></td><td><%= money(p.sale) %></td></tr>
+    <tr><th scope="row">Phí cố định</th><td><%= money(p.sale) %> × <%= c.fixedFee %>%</td><td>− <%= money(p.fixedFee) %></td></tr>
+    <tr><th scope="row">Voucher Xtra</th><td><%= money(p.sale) %> × <%= c.voucherExtra %>%</td><td>− <%= money(p.voucherExtra) %></td></tr>
+    <tr><th scope="row">Hạ tầng</th><td>Số tiền cố định</td><td>− <%= money(c.infrastructureFee) %></td></tr>
+    <tr><th scope="row">Xử lý giao dịch</th><td><%= money(p.sale) %> × <%= c.transactionFee %>%</td><td>− <%= money(p.transactionFee) %></td></tr>
+    <tr class="guide-subtotal"><th scope="row">Tổng phụ phí</th><td><%= money(p.fixedFee) %> + <%= money(p.voucherExtra) %> + <%= money(c.infrastructureFee) %> + <%= money(p.transactionFee) %></td><td><%= money(p.platformFee) %></td></tr>
+    <tr><th scope="row">Thuế GTGT</th><td><%= money(p.sale) %> × 1%</td><td>− <%= money(Math.round(p.sale * 0.01)) %></td></tr>
+    <tr><th scope="row">Thuế TNCN</th><td><%= money(p.sale) %> × 0,5%</td><td>− <%= money(Math.round(p.sale * 0.005)) %></td></tr>
+    <tr class="guide-subtotal"><th scope="row">Thực nhận ước tính</th><td><%= money(p.sale) %> − <%= money(p.platformFee) %> − <%= money(p.tax) %></td><td><%= money(p.estimatedPayout) %></td></tr>
+    <tr><th scope="row">Ads</th><td><%= money(p.adsBase) %> × <%= c.ads %>%</td><td>− <%= preciseMoney(p.ads) %></td></tr>
+    <tr><th scope="row">Giá nhập</th><td>Giả định chi phí mua một sản phẩm</td><td>− <%= money(example.purchasePrice) %></td></tr>
+    <tr><th scope="row">Đóng gói</th><td>Số tiền cấu hình trong ví dụ</td><td>− <%= money(c.packaging) %></td></tr>
+    <tr><th scope="row">Rủi ro</th><td><%= money(p.sale) %> × <%= c.risk %>%</td><td>− <%= preciseMoney(p.risk) %></td></tr>
+    <tr class="guide-subtotal"><th scope="row">Lợi nhuận dự tính</th><td>Thực nhận − Ads − giá nhập − đóng gói − rủi ro</td><td><%= preciseMoney(p.profit) %></td></tr>
+  </tbody></table></div>
+  <p><strong>Ship trong ảnh:</strong> phí vận chuyển 16.500đ được Shopee bù 16.500đ, khách trả 0đ → chênh lệch vận chuyển bằng 0đ. Không trừ thêm 16.500đ khỏi thực nhận của đơn này.</p>
+  <p><strong>Phí dịch vụ trong ảnh:</strong> <%= money(p.voucherExtra) %> Voucher Xtra + <%= money(c.infrastructureFee) %> hạ tầng = <%= money(p.voucherExtra + c.infrastructureFee) %>.</p>
+</section>
+
+<section class="panel guide" id="voucher"><h2>4. Nhập voucher shop bằng tiền</h2>
+  <p>Cấu hình voucher shop hiện dùng <strong>số tiền ₫</strong>, mặc định 0đ. Nếu không dùng voucher, giữ 0. Nếu dùng voucher phần trăm có mức tối đa, quy đổi ra tiền giảm thực tế rồi nhập; ứng dụng chưa tự áp tỷ lệ, điều kiện đơn tối thiểu hoặc mức trần.</p>
+  <ul><li><strong>Giảm cố định 2.000đ:</strong> nhập 2000.</li><li><strong>Giảm 10%, tối đa 5.000đ:</strong> với giá trị đủ điều kiện 72.966đ, 10% là 7.296,6đ nhưng chỉ giảm tối đa 5.000đ → nhập 5000 cho phép ước tính một sản phẩm này.</li><li><strong>Voucher áp dụng cả đơn nhiều sản phẩm:</strong> cần phân bổ số tiền giảm cho từng sản phẩm trước khi dùng cấu hình theo sản phẩm. Không nhập toàn bộ voucher đơn vào mỗi sản phẩm.</li></ul>
+  <p class="guide-note">Voucher shop làm giảm doanh thu. Voucher Xtra là phí dịch vụ tính bằng %. Hai khoản có thể cùng tồn tại; không thay voucher shop bằng tỷ lệ Voucher Xtra.</p>
+</section>
+
+<section class="panel guide" id="luu-y"><h2>5. Đọc kết quả và sử dụng cấu hình</h2>
+  <dl class="guide-definitions">
+    <dt>Ads riêng của sản phẩm</dt><dd>Tắt Ads → 0đ. Bật Ads và để trống tỷ lệ riêng → dùng tỷ lệ của sàn. Nhập tỷ lệ riêng 0 → Ads 0%. Nếu thực nhận âm, cơ sở tính Ads được chặn ở 0đ.</dd>
+    <dt>“Điểm hòa vốn” trên danh sách sản phẩm</dt><dd>Đây là tổng chi phí tại giá bán đang nhập, gồm giá nhập, phí sàn, Ads, thuế, đóng gói và rủi ro. Trong ví dụ: <%= preciseMoney(p.cost) %>. Giá cần bán để lợi nhuận bằng 0 là chỉ số riêng trong “Xem cách tính”, ví dụ khoảng <%= money(p.breakEvenPrice) %>; có thể lệch vài đồng do làm tròn phí.</dd>
+    <dt>Giới hạn của phép ước tính</dt><dd>Ứng dụng tính theo một đơn vị sản phẩm, gồm cả các khoản tiền cố định. Phí hạ tầng thực tế theo đơn cần được phân bổ nếu đơn có nhiều sản phẩm. Phép tính hiện chưa cộng ship người mua trả, chưa trừ khuyến mãi ngân hàng và chưa tự áp trần phí theo chương trình. Hãy đối chiếu chi tiết doanh thu của sàn khi chốt số liệu thực tế.</dd>
+    <dt>Cập nhật cấu hình và phiếu xuất cũ</dt><dd>Cấu hình mới áp dụng khi tính giá sản phẩm và tạo dòng xuất mới. Phiếu đã lưu giữ giá, phí và tiền Ads tại lúc xuất; sửa số lượng giữ dữ liệu cũ, đổi SKU hoặc sàn lấy giá và cấu hình hiện tại. Báo cáo chỉ cộng phiếu xuất đã duyệt.</dd>
+    <dt>Mức phí theo từng sàn</dt><dd>Các mức 16,5%, 5,5%, 6% và thuế 1,5% trong ví dụ là giả định để tái hiện đơn Shopee của shop. Bảng cấu hình phía trên mới là mức ứng dụng đang dùng. Không tự áp mức Shopee cho TikTok; nhập theo thông tin thực tế của sàn.</dd>
+  </dl>
+  <div class="actions"><a class="button" href="/configuration">Kiểm tra cấu hình</a><a class="button secondary" href="/products">Xem giá và lợi nhuận</a></div>
+</section>

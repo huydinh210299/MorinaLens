@@ -21,7 +21,8 @@ function summarizeMovements(movements) {
       const revenue = snapshot.unitRevenue * item.amount;
       const profit = snapshot.unitProfit * item.amount;
       const cost = revenue - profit;
-      const adsCost = Number.isFinite(snapshot.adsPercentApplied) ? revenue * snapshot.adsPercentApplied / 100 : 0;
+      const adsCost = Number.isFinite(snapshot.unitAdsCost) ? snapshot.unitAdsCost * item.amount
+        : Number.isFinite(snapshot.adsPercentApplied) ? revenue * snapshot.adsPercentApplied / 100 : 0;
       totals.revenue += revenue; totals.profit += profit; totals.cost += cost; totals.adsCost += adsCost; totals.quantity += item.amount;
       byPlatform[platform].revenue += revenue; byPlatform[platform].profit += profit; byPlatform[platform].cost += cost; byPlatform[platform].adsCost += adsCost; byPlatform[platform].quantity += item.amount;
       daily.revenue += revenue; daily.adsCost += adsCost; daily.profit += profit; daily.quantity += item.amount;

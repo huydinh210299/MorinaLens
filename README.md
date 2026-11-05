@@ -10,6 +10,7 @@
 - Phiếu xuất chọn sàn và dùng giá bán của sản phẩm trên sàn đó. Giá và lợi nhuận được lưu tại thời điểm xuất; phiếu xuất của staff chỉ vào báo cáo sau khi admin duyệt.
 - Trang **Doanh thu** chỉ admin xem, tổng hợp doanh thu, chi phí và lợi nhuận dự tính theo tháng, theo sàn và theo ngày. Phiếu hoàn chỉ cộng tồn kho, không đổi báo cáo.
 - Cấu hình phí theo sàn và đơn giá mỗi đơn trong hệ thống. Seed 10 cấu hình Shopee cùng đơn giá 1.500 ₫/đơn; TikTok cần điền đủ cấu hình phí trước khi xuất bán và tính lợi nhuận.
+- Trang **Hướng dẫn** (`/guide`, chỉ quản trị viên) giải thích từng khoản phí, hiển thị cấu hình đang dùng của Shopee/TikTok, hướng dẫn nhập voucher bằng tiền và minh họa đơn Shopee có thực nhận 47.031đ cùng cách tính Ads, lợi nhuận.
 - Nhân viên chỉ xem SKU/tên, tồn kho, giá Shopee và giá TikTok trên danh sách sản phẩm. Phiếu kho của nhân viên không hiển thị doanh thu, chi phí, Ads hoặc lợi nhuận; nhân viên chỉ tạo phiếu **xuất** hoặc **hoàn**. Cấu hình giá và báo cáo doanh thu chỉ dành cho quản trị viên.
 
 ## Chạy cục bộ
@@ -26,29 +27,40 @@ npm start
 
 ## Cách tính giá
 
-Nguồn công thức phí Shopee: `Tính giá lens/tinh-gia-shopee-ads-15pct.xlsx`. Mỗi sàn dùng giá bán và bộ cấu hình phí riêng. Giá bán nhập vào đã bao gồm thuế; ứng dụng không cộng thuế vào doanh thu. Với một giá bán:
+Mỗi sàn dùng giá bán và bộ cấu hình phí riêng. Giá bán nhập vào đã bao gồm thuế; ứng dụng không cộng thuế vào doanh thu. Công thức phiên bản 2 đối chiếu theo chi tiết doanh thu Shopee của shop:
 
 ```text
-Giá bán thực (doanh thu) = giá bán × (1 − voucher shop %)
-Phí sàn = Giá bán thực × (xử lý giao dịch + phí cố định + voucher extra) + phí hạ tầng + Pi ship
-Ads = Giá bán thực × Ads %
-Thuế phải trả = (Giá bán thực − phí sàn) × thuế %
+Voucher shop (trợ giá) = min(giá bán, số tiền voucher shop cấu hình)
+Giá bán thực (doanh thu) = giá bán − voucher shop
+Phí sàn = round(doanh thu × xử lý giao dịch %) + round(doanh thu × phí cố định %)
+        + round(doanh thu × voucher extra %) + phí hạ tầng + Pi ship
+Thuế phải trả = doanh thu × thuế % (trước khi trừ phí sàn)
+Thực nhận ước tính = doanh thu − phí sàn − thuế phải trả
+Ads = max(0, thực nhận ước tính) × Ads %
 Rủi ro = Giá bán thực × rủi ro %
 Tổng chi phí tại giá này = giá nhập + phí sàn + Ads + thuế phải trả + đóng gói + rủi ro
 Lợi nhuận = Giá bán thực − tổng chi phí tại giá này
 ```
 
-File Excel gọi **tổng chi phí tại giá bán đang nhập** là “Điểm hòa vốn”; giao diện hiển thị chỉ số này cho mỗi sàn. Vì phí sàn, Ads, thuế và rủi ro phụ thuộc vào giá bán, tổng chi phí thay đổi theo giá bán. Một chỉ số khác là **giá cần bán để lợi nhuận bằng 0**; ứng dụng chỉ hiển thị mức giá này trong phần “Xem cách tính”. Khác công thức Excel ban đầu, ứng dụng dùng giá bán đã gồm thuế, áp voucher shop trước khi tính phí và chỉ trừ thuế trong chi phí để tính lợi nhuận. Cấu hình mặc định dùng đóng gói 2.500 ₫ và chi phí rủi ro 1,5%.
+Mức thuế 1,5% được làm tròn riêng GTGT 1% và TNCN 0,5%; mức thuế cấu hình khác được làm tròn một lần. Ví dụ giá 72.966đ, voucher shop 2.000đ: doanh thu 70.966đ, phí cố định 11.709đ (16,5%), Voucher Xtra 3.903đ (5,5%), hạ tầng 3.000đ, xử lý giao dịch 4.258đ (6%), thuế 1.065đ, thực nhận 47.031đ; Ads 15% là 7.054,65đ.
+
+File Excel gọi **tổng chi phí tại giá bán đang nhập** là “Điểm hòa vốn”; giao diện giữ chỉ số này. **Giá cần bán để lợi nhuận bằng 0** trong phần “Xem cách tính” là ước tính liên tục theo công thức mới; việc làm tròn từng khoản phí có thể làm lợi nhuận tại mức giá này lệch vài đồng. Mặc định: phí cố định 16,5%, voucher shop 0đ, đóng gói 2.500đ và rủi ro 1,5%. Voucher shop là tiền giảm của shop, tách biệt với phí Voucher Xtra 5,5%.
+
+Phép ước tính hiện tính theo một sản phẩm: các khoản tiền cố định (voucher shop, hạ tầng, Pi ship, đóng gói) áp dụng trên mỗi đơn vị. Nếu một đơn có nhiều sản phẩm, cần phân bổ voucher cả đơn thành số tiền cho một sản phẩm; ứng dụng chưa phân bổ phí theo đơn thực tế. Ship được Shopee bù toàn bộ trong đơn mẫu nên không trừ thêm 16.500đ. Phí giao dịch trong phép ước tính chưa cộng ship người mua trả hoặc trừ ưu đãi ngân hàng.
+
+Khi khởi động/seed, migration chuyển phí cố định Shopee hiện có sang 16,5% một lần và đặt voucher shop có đơn vị `%` về 0đ (cả Shopee và TikTok). Sau chuyển đổi, các chỉnh sửa tiếp theo của admin được giữ khi khởi động lại. Migration không sửa snapshot lịch sử.
 
 Phiếu xuất tự lấy Ads từ sản phẩm trên sàn đã chọn. Sản phẩm bật Ads sẽ dùng tỷ lệ riêng nếu có, nếu để trống dùng cấu hình sàn; nhập tỷ lệ riêng `0` nghĩa là Ads 0%. Sản phẩm tắt Ads luôn tính 0%. Tỷ lệ đã dùng được lưu trong từng dòng phiếu xuất.
 
 ## Báo cáo doanh thu
 
-Mỗi dòng phiếu **xuất** dùng giá bán và Ads của sản phẩm trên sàn đã chọn. Hệ thống lưu `items[].saleSnapshot` gồm giá bán (`listPrice`), giá nhập (`purchasePrice`), tỷ lệ Ads thực tế (`adsPercentApplied`), giá bán thực, tổng chi phí và lợi nhuận trên từng đơn vị tại lúc tạo phiếu. Toàn bộ 10 cấu hình phí của sàn nằm chung trong object `saleSnapshot.config`, không trải thành các field riêng trên phiếu hay sản phẩm. Có thể tính lại bằng `pricing.calculate(listPrice, purchasePrice, config, adsPercentApplied)`, kể cả sau khi sửa cấu hình hoặc giá sản phẩm. Báo cáo tháng chỉ cộng phiếu xuất **đã duyệt** theo ngày phiếu; phiếu chờ duyệt, phiếu hoàn và phiếu điều chỉnh tồn từ trang sản phẩm không ảnh hưởng báo cáo. Nếu sửa số lượng trên phiếu, ảnh chụp đơn giá và cấu hình được giữ; thêm SKU hoặc đổi sàn sẽ lấy giá và cấu hình hiện tại. Phiếu cũ giữ nguyên dữ liệu đã lưu, không tự điền cấu hình hiện tại vào lịch sử; các dòng không có ảnh chụp giá được báo riêng và không bị gán doanh thu giả. Đây là số liệu **dự tính theo giá bán**, chưa phải tiền thực nhận từ sàn.
+Mỗi dòng phiếu **xuất** lưu `items[].saleSnapshot` gồm phiên bản công thức (`pricingVersion`), giá bán (`listPrice`), giá nhập (`purchasePrice`), tỷ lệ Ads (`adsPercentApplied`), tiền Ads (`unitAdsCost`), giá bán thực, tổng chi phí và lợi nhuận trên từng đơn vị. Toàn bộ 10 cấu hình phí nằm chung trong `saleSnapshot.config`. Tính lại bằng `pricing.calculate(listPrice, purchasePrice, config, adsPercentApplied, pricingVersion ?? 1)`; phiên bản 1 vẫn diễn giải voucher theo phần trăm và dùng công thức thuế/Ads cũ. Phiếu mới dùng phiên bản 2. Báo cáo dùng tiền Ads đã lưu; phiếu cũ thiếu trường này giữ cách tính Ads lịch sử.
+
+Báo cáo tháng chỉ cộng phiếu xuất **đã duyệt** theo ngày phiếu; phiếu chờ duyệt, phiếu hoàn và điều chỉnh tồn không ảnh hưởng báo cáo. Sửa số lượng giữ snapshot; thêm SKU hoặc đổi sàn lấy giá/cấu hình mới. Phiếu cũ giữ nguyên kết quả lịch sử; dòng thiếu snapshot được báo riêng. Đây là số liệu **dự tính theo giá bán**, chưa phải đối soát tiền thực nhận từ sàn.
 
 ## Lưu ý kho
 
-Để cập nhật các snapshot dùng công thức cũ trên **local**, chạy `node scripts/recalculate-local-sales.js` để xem trước, sau đó thêm `--apply` để ghi. Script chỉ kết nối MongoDB local/database `morina-lens`, sao lưu phiếu gốc vào `backups/` trước khi ghi và không đổi tồn kho, công hoặc thời điểm tạo phiếu. Phiếu thiếu đầu vào lịch sử chỉ được cập nhật nếu giá nhập và cấu hình hiện tại tái hiện khớp cả doanh thu, chi phí và lợi nhuận cũ. Chạy lại không thay đổi các snapshot đã cập nhật.
+Script `node scripts/recalculate-local-sales.js` chỉ sửa lỗi giá chưa gồm thuế của phiên bản 1 trên **local** (mặc định xem trước, `--apply` để ghi); bỏ qua snapshot phiên bản 2 và không chuyển công thức thuế/Ads/voucher lịch sử. Script chỉ kết nối MongoDB local/database `morina-lens`, sao lưu phiếu gốc vào `backups/` trước khi ghi và không đổi tồn kho, công hoặc thời điểm tạo phiếu. Phiếu thiếu đầu vào lịch sử chỉ được cập nhật nếu tái hiện khớp toàn bộ kết quả cũ. Chạy lại không thay đổi snapshot đã cập nhật.
 
 Tồn đầu kỳ nhập khi tạo sản phẩm. Sau đó có thể thay đổi bằng phiếu kho hoặc sửa trực tiếp trong form sản phẩm; cách sửa trực tiếp sẽ ghi một phiếu nhập/xuất điều chỉnh tự động. Nếu tồn kho thay đổi trong lúc admin đang mở form, hệ thống yêu cầu tải lại để tránh ghi đè thao tác mới. Không thể xóa sản phẩm đã có lịch sử kho. Trên MongoDB standalone, app ghi tuần tự và cố gắng hoàn tác khi có lỗi; để đảm bảo tính nguyên tử giữa nhiều bản ghi trong production, dùng MongoDB Atlas hoặc replica set.
 

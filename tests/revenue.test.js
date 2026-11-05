@@ -27,3 +27,16 @@ test("phiếu cũ chưa có giá được báo riêng thay vì gán doanh thu b�
   assert.equal(report.totals.unpricedItems, 3);
   assert.equal(report.totals.revenue, 0);
 });
+
+test("báo cáo dùng tiền Ads đã lưu theo thực nhận; phiếu cũ giữ cách tính lịch sử", () => {
+  const current = sale("export", "approved", "shopee", 2, 70966, 10000);
+  current.items[0].saleSnapshot.unitAdsCost = 7054.65;
+  current.items[0].saleSnapshot.pricingVersion = 2;
+  const legacy = sale("export", "approved", "shopee", 1, 100000, 20000);
+  const report = summarizeMovements([current, legacy]);
+  assert.equal(report.totals.adsCost, 7054.65 * 2 + 15000);
+  assert.equal(report.byPlatform.shopee.adsCost, report.totals.adsCost);
+  assert.equal(report.byDay[0].adsCost, report.totals.adsCost);
+  current.items[0].saleSnapshot.unitAdsCost = 0;
+  assert.equal(summarizeMovements([current]).totals.adsCost, 0);
+});

@@ -9,13 +9,15 @@
       <small>Điểm hòa vốn (tổng chi phí): <%= money(p.cost) %></small>
       <small class="<%= p.profit >= 0 ? 'positive' : 'negative' %>">Lợi nhuận: <%= money(p.profit) %></small>
       <details class="cost-breakdown"><summary>Xem cách tính</summary><div>
+        <span>Voucher shop: <%= money(p.shopVoucher) %></span>
         <span>Giá nhập: <%= money(item.purchasePrice) %></span>
         <span>Phí sàn: <%= money(p.platformFee) %></span>
-        <span>Ads: <%= money(p.ads) %></span>
         <span>Thuế: <%= money(p.tax) %></span>
+        <span>Thực nhận ước tính sau phí và thuế: <%= money(p.estimatedPayout) %></span>
+        <span>Ads (<%= p.adsPercent %>% × <%= money(p.adsBase) %>): <%= money(p.ads) %></span>
         <span>Đóng gói: <%= money(config.packaging) %></span>
         <span>Rủi ro: <%= money(p.risk) %></span>
-        <span>Giá cần bán để lãi 0: <%= p.breakEvenPrice === null ? 'Không xác định' : money(p.breakEvenPrice) %></span>
+        <span>Giá cần bán để lãi 0 (ước tính): <%= p.breakEvenPrice === null ? 'Không xác định' : money(p.breakEvenPrice) %></span>
       </div></details>
     <% } %>
   <% } %>

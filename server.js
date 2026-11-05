@@ -44,6 +44,7 @@ app.use("/inventory", require("./routes/inventoryRoutes"));
 app.use("/users", require("./routes/userRoutes"));
 app.use("/configuration", require("./routes/configurationRoutes"));
 app.use("/revenue", require("./routes/revenueRoutes"));
+app.use("/guide", require("./routes/guideRoutes"));
 app.use(notFound);
 app.use(handle);
 

@@ -8,16 +8,17 @@ const pricing = require("../services/pricingService");
 const close = (a, b) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) < 1e-6;
 
 function recalculateSnapshot(snapshot, fallback = {}) {
+  if (snapshot?.pricingVersion >= 2) return null;
   if (!snapshot || !Number.isFinite(snapshot.listPrice) || !Number.isFinite(snapshot.adsPercentApplied)) return null;
   const config = snapshot.config ?? fallback.config;
   const purchasePrice = snapshot.purchasePrice ?? fallback.purchasePrice;
   if (!pricing.hasCompleteConfig(config) || !Number.isFinite(purchasePrice)) return null;
-  const result = pricing.calculate(snapshot.listPrice, purchasePrice, config, snapshot.adsPercentApplied);
+  const result = pricing.calculateLegacy(snapshot.listPrice, purchasePrice, config, snapshot.adsPercentApplied);
   const matches = (value) => close(snapshot.unitRevenue, value.sale) && close(snapshot.unitCost, value.cost) && close(snapshot.unitProfit, value.profit);
   if (matches(result)) return null; // Đã dùng công thức mới: chạy lại không đổi dữ liệu.
   // Chỉ chấp nhận đầu vào tái hiện đúng cả 3 kết quả của công thức cũ.
   // Đặc biệt, không gán cấu hình hiện tại vào lịch sử nếu không đối chiếu được.
-  const oldResult = pricing.calculate(snapshot.listPrice * (1 + config.tax / 100), purchasePrice, config, snapshot.adsPercentApplied);
+  const oldResult = pricing.calculateLegacy(snapshot.listPrice * (1 + config.tax / 100), purchasePrice, config, snapshot.adsPercentApplied);
   if (!matches(oldResult)) return null;
   return { ...snapshot, purchasePrice, config: { ...config },
     unitRevenue: result.sale, unitCost: result.cost, unitProfit: result.profit };

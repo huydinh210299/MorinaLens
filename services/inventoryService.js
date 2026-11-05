@@ -64,8 +64,8 @@ async function prepareSaleItems(data, session, previous = null) {
     const price = data.platform === "shopee" ? product.shopeePrice : product.tiktokPrice;
     if (price === null || price === undefined) throw new AppError(`SKU ${item.sku} chưa có giá bán trên sàn ${data.platform === "shopee" ? "Shopee" : "TikTok"}.`);
     const result = pricing.calculateProduct(product, config, data.platform);
-    item.saleSnapshot = { listPrice: price, purchasePrice: product.purchasePrice, config: { ...config },
-      unitRevenue: result.sale, unitCost: result.cost, unitProfit: result.profit, adsPercentApplied: result.adsPercent };
+    item.saleSnapshot = { pricingVersion: pricing.PRICING_VERSION, listPrice: price, purchasePrice: product.purchasePrice, config: { ...config },
+      unitRevenue: result.sale, unitCost: result.cost, unitProfit: result.profit, unitAdsCost: result.ads, adsPercentApplied: result.adsPercent };
   }
 }
 

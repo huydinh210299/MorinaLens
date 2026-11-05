@@ -60,6 +60,8 @@ test("phiếu xuất lưu đủ đầu vào và tính lại độc lập với c
   assert.deepEqual(snapshot.config, defaults);
   assert.equal(snapshot.purchasePrice, 10000);
   assert.equal(snapshot.adsPercentApplied, 8);
+  assert.equal(snapshot.pricingVersion, 2);
+  assert.ok(snapshot.unitAdsCost > 0);
   assert.equal(state.movement.toObject().config, undefined);
   assert.equal(snapshot.tax, undefined);
 
@@ -69,13 +71,14 @@ test("phiếu xuất lưu đủ đầu vào và tính lại độc lập với c
   state.product.shopeePrice = 90000;
   state.product.ads.shopee.percentOverride = 30;
   const saved = state.movement.items[0].saleSnapshot;
-  const recalculated = pricing.calculate(saved.listPrice, saved.purchasePrice, saved.config, saved.adsPercentApplied);
+  const recalculated = pricing.calculate(saved.listPrice, saved.purchasePrice, saved.config, saved.adsPercentApplied, saved.pricingVersion);
   assert.equal(recalculated.sale, snapshot.unitRevenue);
   assert.equal(recalculated.cost, snapshot.unitCost);
   assert.equal(recalculated.profit, snapshot.unitProfit);
   const report = summarizeMovements([state.movement.toObject()]);
   assert.equal(report.totals.revenue, recalculated.sale * 2);
   assert.equal(report.totals.profit, recalculated.profit * 2);
+  assert.equal(report.totals.adsCost, snapshot.unitAdsCost * 2);
 });
 
 test("sửa số lượng giữ snapshot dù cấu hình hiện tại không còn đầy đủ", async (t) => {
@@ -148,4 +151,17 @@ test("phiếu nhập và hoàn không chụp cấu hình bán hàng", async (t) 
     assert.equal(state.movement.items[0].saleSnapshot, null);
   }
   assert.equal(pricing.getConfig.mock.callCount(), 0);
+});
+
+test("snapshot mới lưu voucher tiền lớn hơn 100đ và tiền Ads theo thực nhận", async (t) => {
+  const state = setup(t);
+  state.config.shopVoucher = 2000;
+  state.product.shopeePrice = 72966;
+  state.product.ads.shopee.percentOverride = 15;
+  await inventory.create(body(), state.actor);
+  const saved = state.movement.items[0].saleSnapshot;
+  assert.equal(saved.config.shopVoucher, 2000);
+  assert.equal(saved.unitRevenue, 70966);
+  assert.ok(Math.abs(saved.unitAdsCost - 7054.65) < 1e-8);
+  assert.ifError(state.movement.validateSync());
 });

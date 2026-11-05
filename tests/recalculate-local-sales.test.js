@@ -1,9 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { recalculateSnapshot } = require("../scripts/recalculate-local-sales");
-const { calculate } = require("../services/pricingService");
+const { calculateLegacy: calculate } = require("../services/pricingService");
 const { keys } = require("../utils/configuration");
 const config = Object.fromEntries(Object.entries(keys).map(([key, meta]) => [key, meta.defaultValue]));
+config.fixedFee = 17;
 const old = { listPrice: 75000, unitRevenue: 76124.99999999999, unitCost: 65527.690625,
   unitProfit: 10597.309374999983, adsPercentApplied: 15 };
 
@@ -46,4 +47,8 @@ test("chuyển đúng snapshot có voucher và Ads riêng bằng 0", () => {
   assert.equal(result.unitProfit, expected.profit);
   assert.equal(result.adsPercentApplied, 0);
   assert.equal(recalculateSnapshot(result), null);
+});
+
+test("script sửa giá gồm thuế cũ bỏ qua snapshot phiên bản 2", () => {
+  assert.equal(recalculateSnapshot({ ...old, pricingVersion: 2, purchasePrice: 25000, config }), null);
 });

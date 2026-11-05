@@ -6,12 +6,14 @@ const configSnapshotSchema = new mongoose.Schema(Object.fromEntries(
   }])
 ), { _id: false });
 const saleSnapshotSchema = new mongoose.Schema({
+  pricingVersion: { type: Number, enum: [1, 2], default: 1 },
   listPrice: { type: Number, required: true, min: 0 },
   purchasePrice: { type: Number, default: null, min: 0 },
   config: { type: configSnapshotSchema, default: null },
   unitRevenue: { type: Number, required: true },
   unitCost: { type: Number, required: true },
   unitProfit: { type: Number, required: true },
+  unitAdsCost: { type: Number, default: null, min: 0 },
   adsPercentApplied: { type: Number, required: true, min: 0, max: 100 }
 }, { _id: false });
 const itemSchema = new mongoose.Schema({

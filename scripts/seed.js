@@ -6,6 +6,7 @@ const User = require("../models/User");
 const Configuration = require("../models/Configuration");
 const { defaults, systemDefaults } = require("../utils/configuration");
 const { backfillAutomaticPayroll } = require("../services/userService");
+const { migratePricingConfiguration } = require("../services/configurationService");
 
 async function seed() {
   const username = process.env.ADMIN_USERNAME?.trim();
@@ -24,6 +25,7 @@ async function seed() {
   for (const [key, label, value, unit] of systemDefaults) {
     await Configuration.updateOne({ platform: "system", key }, { $setOnInsert: { platform: "system", key, label, value, unit } }, { upsert: true });
   }
+  await migratePricingConfiguration();
   const updatedStaff = await backfillAutomaticPayroll();
   console.log(`Đã kiểm tra admin, 10 cấu hình Shopee, đơn giá mỗi đơn và lương tự động cho ${updatedStaff} nhân viên.`);
 }
