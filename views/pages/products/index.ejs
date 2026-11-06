@@ -14,7 +14,7 @@
       <td><%= item.quantity %></td><% if (isAdmin) { %><td><%= money(item.purchasePrice) %></td><% } %>
       <td><% if (isAdmin) { %><%- include('../../partials/platform-price', { item, platform: 'shopee', config: shopee }) %><% } else { %><%= item.shopeePrice == null ? 'Chưa đặt giá' : money(item.shopeePrice) %><% } %></td>
       <td><% if (isAdmin) { %><%- include('../../partials/platform-price', { item, platform: 'tiktok', config: tiktok }) %><% } else { %><%= item.tiktokPrice == null ? 'Chưa đặt giá' : money(item.tiktokPrice) %><% } %></td>
-      <% if (isAdmin) { %><td><small>Tạo: <%= dateTime(item.createdAt) %><br>Cập nhật: <%= dateTime(item.updatedAt) %></small></td><td class="actions-cell"><a href="/products/<%= item._id %>/edit">Chỉnh sửa</a><form method="post" action="/products/<%= item._id %>?_method=DELETE" data-confirm="Xóa sản phẩm này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form></td><% } %>
+      <% if (isAdmin) { %><td><small>Tạo: <%= dateTime(item.createdAt) %><br>Cập nhật: <%= dateTime(item.updatedAt) %></small></td><td class="actions-cell"><a href="/products/<%= item._id %>/edit">Chỉnh sửa</a><a href="/products/<%= item._id %>/clone">Nhân bản</a><form method="post" action="/products/<%= item._id %>?_method=DELETE" data-confirm="Xóa sản phẩm này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form></td><% } %>
     </tr><% } %>
     <% if (!items.length) { %><tr><td colspan="<%= isAdmin ? 7 : 4 %>" class="empty">Không có dữ liệu</td></tr><% } %>
   </tbody></table></div>

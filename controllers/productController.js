@@ -32,6 +32,12 @@ async function form(req, res) {
     adsDefaults: { shopee: shopeeConfig?.ads, tiktok: tiktokConfig?.ads } });
 }
 async function create(req, res) { await service.create(req.body); res.redirect("/products?message=" + encodeURIComponent("Đã thêm sản phẩm.")); }
+async function cloneForm(req, res) {
+  const source = await Product.findById(req.params.id).lean();
+  if (!source) throw new AppError("Không tìm thấy sản phẩm.", 404);
+  res.render("pages/products/clone", { title: "Nhân bản sản phẩm", source });
+}
+async function clone(req, res) { await service.clone(req.params.id, req.body); res.redirect("/products?message=" + encodeURIComponent("Đã nhân bản sản phẩm.")); }
 async function update(req, res) { await service.update(req.params.id, req.body, req.user); res.redirect("/products?message=" + encodeURIComponent("Đã cập nhật sản phẩm.")); }
 async function remove(req, res) { await service.remove(req.params.id); res.redirect("/products?message=" + encodeURIComponent("Đã xóa sản phẩm.")); }
-module.exports = { index, form, create, update, remove };
+module.exports = { index, form, create, cloneForm, clone, update, remove };

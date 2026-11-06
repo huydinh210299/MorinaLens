@@ -1,0 +1,11 @@
+<div class="page-head"><div><p class="eyebrow">Danh mục</p><h1><%= title %></h1><p class="muted">Sản phẩm gốc: <strong><%= source.sku %></strong> — <%= source.name %></p></div><a class="button secondary" href="/products">Quay lại</a></div>
+<section class="panel"><form class="stack" method="post" action="/products/<%= source._id %>/clone">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <p class="muted">Nhập thông tin cho sản phẩm mới. Giá nhập, giá bán Shopee/TikTok, cấu hình Ads và ghi chú được sao chép từ sản phẩm gốc khi lưu.</p>
+  <div class="form-grid">
+    <label>SKU mới<input name="sku" required maxlength="60" pattern="[A-Za-z0-9._\-]+" placeholder="VD: LENS-002" autofocus></label>
+    <label>Tên sản phẩm mới<input name="name" required maxlength="150"></label>
+    <label>Tồn đầu kỳ<input type="number" name="quantity" required min="0" step="1" value="0"></label>
+  </div>
+  <div class="actions"><button class="button">Nhân bản sản phẩm</button><a class="button secondary" href="/products">Hủy</a></div>
+</form></section>

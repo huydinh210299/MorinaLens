@@ -13,6 +13,8 @@
 - Trang **Hướng dẫn** (`/guide`, chỉ quản trị viên) giải thích từng khoản phí, hiển thị cấu hình đang dùng của Shopee/TikTok, hướng dẫn nhập voucher bằng tiền và minh họa đơn Shopee có thực nhận 47.031đ cùng cách tính Ads, lợi nhuận.
 - Nhân viên chỉ xem SKU/tên, tồn kho, giá Shopee và giá TikTok trên danh sách sản phẩm. Phiếu kho của nhân viên không hiển thị doanh thu, chi phí, Ads hoặc lợi nhuận; nhân viên chỉ tạo phiếu **xuất** hoặc **hoàn**. Cấu hình giá và báo cáo doanh thu chỉ dành cho quản trị viên.
 
+- Quản trị viên có thể chọn **Nhân bản** trong danh sách sản phẩm, nhập SKU mới, tên mới và tồn đầu kỳ. Giá nhập, giá bán Shopee/TikTok, cấu hình Ads và ghi chú được lấy từ sản phẩm gốc khi lưu. SKU mới phải duy nhất; sản phẩm mới có tồn đầu kỳ riêng và không sao chép lịch sử kho.
+
 ## Chạy cục bộ
 
 Yêu cầu Node.js 22+ và MongoDB. MongoDB standalone dùng luồng ghi tuần tự với hoàn tác khi có lỗi; MongoDB Atlas/replica set dùng transaction cho phiếu kho nhiều SKU.

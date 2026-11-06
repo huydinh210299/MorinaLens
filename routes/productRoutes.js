@@ -6,6 +6,8 @@ router.use(requireAuth);
 router.get("/", wrap(controller.index));
 router.get("/new", adminOnly, wrap(controller.form));
 router.post("/", adminOnly, wrap(controller.create));
+router.get("/:id/clone", adminOnly, wrap(controller.cloneForm));
+router.post("/:id/clone", adminOnly, wrap(controller.clone));
 router.get("/:id/edit", adminOnly, wrap(controller.form));
 router.put("/:id", adminOnly, wrap(controller.update));
 router.delete("/:id", adminOnly, wrap(controller.remove));
