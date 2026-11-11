@@ -71,7 +71,7 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: scp "$RUNNER_TEMP/morina-lens.tar.gz" morina-lens.env.b64 "${VPS_USER}@${VPS_HOST}:/tmp/"
 
-      - name: Activate release
+      - name: Build and activate release
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
@@ -99,6 +99,7 @@ jobs:
           if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) throw new Error('Thiếu tài khoản admin ban đầu.');
           CHECK
           npm run seed
+          npm run build
 
           pm2 delete morina-lens || true
           for attempt in $(seq 1 10); do

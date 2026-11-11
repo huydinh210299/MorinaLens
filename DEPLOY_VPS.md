@@ -231,7 +231,9 @@ Kiểm tra thay đổi cần triển khai, commit các file liên quan rồi pus
 
 Sự kiện `workflow_dispatch` cho deploy dù chưa bật biến tự deploy. **Re-run all jobs** của một lần chạy `push` vẫn dùng sự kiện cũ, không chuyển thành `workflow_dispatch`.
 
-Workflow sẽ kiểm tra code, tải release, ghi `.env`, cài dependencies production, kiểm tra cấu hình, chạy seed, thay tiến trình `morina-lens`, kiểm tra health rồi cập nhật symlink `current`.
+Workflow sẽ kiểm tra code, tải release, ghi `.env`, cài dependencies production, kiểm tra cấu hình, chạy seed, chạy `npm run build`, thay tiến trình `morina-lens`, kiểm tra health rồi cập nhật symlink `current`.
+
+Mỗi lần build tự kiểm tra collection `migrations` trong database `morina-lens`: script đã `completed` thì báo `skipped`, script chưa hoàn tất thì chạy và lưu lịch sử. Xem kết quả trong bước **Build and activate release** của job `deploy`. Migration lỗi sẽ làm build/deploy dừng trước khi dừng tiến trình PM2 cũ. Thêm script mới vào `scripts/migrations/index.js` với ID mới để build sau tự chạy.
 
 ### 6.3. Bật deploy khi push
 

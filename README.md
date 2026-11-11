@@ -27,6 +27,40 @@ npm start
 
 Đặt `MONGODB_URI` với database `morina-lens`, `JWT_SECRET` tối thiểu 32 ký tự, `ADMIN_USERNAME` và `ADMIN_PASSWORD` trong `.env`. App tự seed admin, cấu hình Shopee, đơn giá mỗi đơn và lương còn thiếu của staff khi khởi động. Seed chạy lại không ghi đè đơn giá đã sửa hoặc lương đã nhập thủ công. Mật khẩu cần có giá trị khi tạo tài khoản nhưng không bị giới hạn độ dài; khi sửa, để trống để giữ mật khẩu cũ. Có thể chạy riêng `npm run seed` để kiểm tra. Mặc định app nghe tại `127.0.0.1:3100`.
 
+Để phát triển local, chạy `npm run dev`. Npm tự chạy bước `predev` để kiểm tra lịch sử và chạy migration còn thiếu bằng `npm run migrate -- --apply`, sau đó mới khởi động nodemon. Migration đã `completed` được bỏ qua; nếu migration lỗi thì server chưa khởi động. Dùng `MONGODB_URI` trỏ tới database local trong `.env`.
+
+## Nhập danh sách Bear lens
+
+Migration `scripts/migrate-bear-lens.js` dùng bản dữ liệu đóng gói từ `bear_lens_full_1d.csv` tại `scripts/data/bear-lens-full-1d.json`: **43 SKU, tổng tồn đầu kỳ 71**. Giữ tên và số lượng theo file; SKU chuyển thành chữ hoa theo quy tắc của ứng dụng. Sau khi chạy đủ chuỗi migration, mỗi sản phẩm mới có giá nhập **27.000đ**, giá Shopee **70.000đ**, giá TikTok để trống và **Ads Shopee bật**. Tỷ lệ Ads dùng cấu hình Shopee khi sản phẩm không có tỷ lệ riêng.
+
+Chạy tại thư mục dự án sau khi cài dependencies và đặt `MONGODB_URI` trong `.env` trỏ tới database `morina-lens` cần nhập:
+
+```bash
+# Xem trước, chỉ đọc database
+npm run migrate:bear-lens
+
+# Tạo các SKU còn thiếu
+npm run migrate:bear-lens -- --apply
+```
+
+Bước nhập SKU bỏ qua sản phẩm đã tồn tại, không sửa tên, giá hoặc tồn kho. Bước tiếp theo bật Ads Shopee cho đúng các SKU trong file, bao gồm sản phẩm đã được nhập ở lần chạy trước; giữ nguyên tỷ lệ Ads riêng và cấu hình TikTok. Số lượng được ghi làm tồn đầu kỳ, không tạo phiếu nhập kho. Migration tự kiểm tra và chạy khi `npm run dev` hoặc `npm run build`; workflow deploy gọi build trên VPS sau seed, trước khi thay tiến trình PM2. Nếu gặp lỗi giữa chừng, có thể chạy lại để tạo tiếp các SKU còn thiếu mà không cộng trùng tồn kho.
+
+### Lịch sử migration
+
+Collection MongoDB **`migrations`** lưu mỗi script theo `_id` cố định, mô tả, trạng thái (`running`, `completed`, `failed`), thời điểm bắt đầu/hoàn tất, kết quả và lỗi. Bear lens có ID `20261111_001_bear_lens`. Cả lệnh riêng ở trên và bộ chạy chung đều kiểm tra collection này: `completed` thì bỏ qua toàn bộ script; chưa có thì chạy và chỉ đánh dấu hoàn tất sau khi thành công. Migration lỗi được ghi `failed` để lần chạy sau thử lại. Nếu trước đó đã nhập Bear lens bằng script cũ, lần đầu bộ chạy mới sẽ bỏ qua các SKU có sẵn và ghi nhận migration hoàn tất.
+
+Migration kế tiếp `20261111_002_bear_lens_shopee_ads` bật Ads Shopee cho danh sách này. Nhờ ID mới, bước bật Ads vẫn chạy nếu bước nhập sản phẩm đã hoàn tất. Sau khi bước bật Ads hoàn tất, những lần dev/build sau bỏ qua bước này, giữ các chỉnh sửa Ads tiếp theo của admin.
+
+```bash
+npm run build                   # Kiểm tra cú pháp và tự chạy migration còn thiếu
+npm run migrate                 # Xem trước tất cả migration, không ghi lịch sử
+npm run migrate -- --apply      # Chạy lần lượt các migration chưa hoàn tất
+```
+
+Build cần `MONGODB_URI` trong môi trường hoặc `.env`, trỏ tới database `morina-lens` cần cập nhật. Mỗi lần build đều kiểm tra collection `migrations`: script có trạng thái `completed` được báo `skipped`, script mới được chạy và ghi nhận `completed`. Build lỗi nếu migration lỗi; workflow dừng trước khi thay tiến trình đang phục vụ. Job `validate` chỉ chạy test/kiểm tra cú pháp; build có ghi database được chạy trên VPS sau khi đã thiết lập `.env` production.
+
+Thêm migration mới vào cuối `scripts/migrations/index.js` với ID mới và hàm `up` có thể chạy lại sau lỗi. Không đổi ID đã phát hành. Hai tiến trình không được chạy cùng migration đồng thời: `_id` duy nhất cùng trạng thái `running` bảo vệ việc nhận chạy. Nếu tiến trình bị tắt đột ngột, trạng thái giữ `running`; cần xác minh tiến trình cũ đã dừng, kiểm tra dữ liệu rồi đổi bản ghi sang `failed` trước khi chạy lại. Không tự hết hạn để tránh chạy chồng lên tiến trình còn hoạt động.
+
 ## Cách tính giá
 
 Mỗi sàn dùng giá bán và bộ cấu hình phí riêng. Giá bán nhập vào đã bao gồm thuế; ứng dụng không cộng thuế vào doanh thu. Công thức phiên bản 2 đối chiếu theo chi tiết doanh thu Shopee của shop:
