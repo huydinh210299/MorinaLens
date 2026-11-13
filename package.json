@@ -12,6 +12,7 @@
     "seed": "node scripts/seed.js",
     "migrate": "node scripts/migrate.js",
     "migrate:bear-lens": "node scripts/migrate-bear-lens.js",
+    "migrate:dreammoon": "node scripts/migrate-dreammoon.js",
     "test": "node --test tests/*.test.js",
     "check": "node --check server.js && node --test tests/*.test.js"
   },

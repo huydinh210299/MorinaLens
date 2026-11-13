@@ -1,0 +1,48 @@
+<div class="page-head">
+  <div><p class="eyebrow">Nhân sự</p><h1>Chấm công của tôi</h1><p class="muted">Ghi nhận số đơn đã đóng mỗi ngày và theo dõi công, lương theo tháng.</p></div>
+  <form method="get" action="/users/timekeeping" class="inline-form"><label>Tháng<input type="month" name="month" required value="<%= month %>"></label><button class="button secondary">Xem</button></form>
+</div>
+<div class="stats">
+  <div class="stat"><strong><%= orderCount %></strong><span>Đơn được tính công trong tháng</span></div>
+  <div class="stat"><strong><%= approvedCount %> / <%= pendingCount %></strong><span>Ngày đã duyệt / chờ duyệt</span></div>
+  <div class="stat"><strong><%= money(salary) %></strong><span>Lương tạm tính · mặc định <%= money(defaultOrderRate) %>/đơn</span></div>
+  <div class="stat"><strong><%= money(paid) %></strong><span>Đã thanh toán · còn <%= money(Math.max(0, salary - paid)) %></span></div>
+</div>
+<% if (isStaff) { %>
+<section class="panel">
+  <h2>Chấm công số đơn đã đóng</h2>
+  <p class="muted">Nhập tổng số đơn bạn đã đóng trong ngày. Mỗi ngày chấm công một lần; có thể sửa hoặc hủy khi chờ duyệt. Có thể nhập 0 nếu không đóng đơn.</p>
+  <p class="muted">Số đơn chấm công chỉ được tính vào lương sau khi quản trị viên duyệt. Tạo, duyệt hoặc thay đổi phiếu kho không tự cộng công.</p>
+  <form method="post" action="/users/timekeeping" class="inline-form">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <label>Ngày làm việc<input type="date" name="date" required max="<%= today %>" value="<%= today %>"></label>
+    <label>Số đơn đã đóng<input type="number" name="amount" min="0" max="1000000" step="1" required placeholder="Ví dụ: 30"></label>
+    <label>Ghi chú<input name="note" maxlength="500" placeholder="Ghi chú nếu có"></label>
+    <button class="button">Gửi chấm công</button>
+  </form>
+</section>
+<% } %>
+<section class="panel">
+  <h2>Lịch sử chấm công tháng <%= month %></h2>
+  <div class="table-wrap"><table><thead><tr><th>Ngày làm việc</th><th>Số đơn đã đóng</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+  <% for (const row of items) { %>
+    <tr>
+      <td><%= dateOnly(row.date) %></td><td><strong><%= row.amount %></strong></td><td><%= row.note || '—' %></td>
+      <td><span class="badge <%= row.approved ? 'approved' : 'pending' %>"><%= row.approved ? 'Đã duyệt' : 'Chờ duyệt' %></span><% if (row.approved) { %><br><small class="muted"><%= row.approvedBy?.username || 'Quản trị viên' %> · <%= dateTime(row.approvedAt) %></small><% } %></td>
+      <td><% if (!row.approved && isStaff) { %>
+        <details class="attendance-edit"><summary>Chỉnh sửa</summary>
+          <form method="post" action="/users/timekeeping/<%= row._id %>?_method=PUT" class="stack">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label>Ngày làm việc<input type="date" name="date" required max="<%= today %>" value="<%= dateInput(row.date) %>"></label>
+            <label>Số đơn đã đóng<input type="number" name="amount" min="0" max="1000000" step="1" required value="<%= row.amount %>"></label>
+            <label>Ghi chú<input name="note" maxlength="500" value="<%= row.note %>"></label><button class="button secondary">Lưu</button>
+          </form>
+        </details>
+        <form method="post" action="/users/timekeeping/<%= row._id %>?_method=DELETE" data-confirm="Hủy chấm công chờ duyệt này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Hủy chấm công</button></form>
+      <% } else { %>—<% } %></td>
+    </tr>
+  <% } %>
+  <% if (!items.length) { %><tr><td colspan="5" class="empty">Chưa có chấm công trong tháng này.</td></tr><% } %>
+  </tbody></table></div>
+  <%- include('../../partials/pagination', { base: '/users/timekeeping', page, total, limit, query: 'month=' + month }) %>
+</section>

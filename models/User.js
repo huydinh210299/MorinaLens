@@ -1,5 +1,14 @@
 const mongoose = require("mongoose");
-const orderSchema = new mongoose.Schema({ date: { type: Date, required: true }, amount: { type: Number, required: true, min: 1 }, movement: { type: mongoose.Schema.Types.ObjectId, ref: "ImportAndExport", default: null } }, { timestamps: true });
+const orderSchema = new mongoose.Schema({
+  date: { type: Date, required: true },
+  amount: { type: Number, required: true, min: 0, validate: Number.isSafeInteger },
+  movement: { type: mongoose.Schema.Types.ObjectId, ref: "ImportAndExport", default: null },
+  attendance: { type: Boolean, default: false },
+  approved: { type: Boolean, default: true },
+  note: { type: String, default: "", trim: true, maxlength: 500 },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  approvedAt: { type: Date, default: null }
+}, { timestamps: true });
 const payrollPaymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true, min: 1 },
   method: { type: String, required: true, enum: ["auto", "manual"] },

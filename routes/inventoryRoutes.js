@@ -1,12 +1,14 @@
 const router = require("express").Router();
 const controller = require("../controllers/inventoryController");
+const closing = require("../controllers/dailyClosingController");
 const { requireAuth, adminOnly } = require("../middleware/auth");
 const { wrap } = require("../middleware/errors");
 router.use(requireAuth);
 router.get("/", wrap(controller.index));
 router.get("/new", wrap(controller.form));
+router.get("/closing", adminOnly, wrap(closing.index));
+router.post("/closing", adminOnly, wrap(closing.close));
 router.post("/", wrap(controller.create));
-router.post("/:id/approve", adminOnly, wrap(controller.approve));
 router.get("/:id/edit", adminOnly, wrap(controller.form));
 router.put("/:id", adminOnly, wrap(controller.update));
 router.delete("/:id", adminOnly, wrap(controller.remove));

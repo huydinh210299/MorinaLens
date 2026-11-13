@@ -1,42 +1,81 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeMovements } = require("../services/revenueService");
+const { summarizeMovements, costBeforeAds } = require("../services/revenueService");
 
-const sale = (type, approvalStatus, platform, amount, unitRevenue, unitProfit, source = "form", adsPercentApplied = 15) => ({
-  type, approvalStatus, platform, source, date: new Date("2026-11-03"), items: [{ amount, saleSnapshot: { unitRevenue, unitProfit, adsPercentApplied } }]
+const sale = (platform, amount = 2, date = "2026-11-03") => ({
+  type: "export", approvalStatus: "approved", platform, source: "form", date: new Date(date),
+  items: [{ amount, saleSnapshot: { unitRevenue: 100000, unitCost: 80000, unitProfit: 20000, unitAdsCost: 15000, unitCostBeforeAds: 65000, adsPercentApplied: 15 } }]
 });
-test("doanh thu chỉ gồm phiếu xuất đã duyệt; phiếu hoàn và điều chỉnh kho không ảnh hưởng", () => {
+const closing = (date, shopeeAds, tiktokAds) => ({ date: new Date(date), shopeeAds, tiktokAds });
+
+test("chỉ phiếu xuất đã duyệt tính doanh thu, trừ Ads thực tế đúng một lần theo ngày và sàn", () => {
   const report = summarizeMovements([
-    sale("export", "approved", "shopee", 2, 100000, 20000),
-    sale("export", "approved", "tiktok", 1, 80000, 10000),
-    sale("export", "pending", "shopee", 1, 100000, 20000),
-    sale("return", "approved", "shopee", 1, 100000, 20000),
-    sale("export", "approved", "shopee", 5, 100000, 20000, "product_update")
-  ]);
-  assert.equal(report.totals.orders, 2);
-  assert.equal(report.totals.quantity, 3);
-  assert.equal(report.totals.revenue, 280000);
-  assert.equal(report.totals.profit, 50000);
-  assert.equal(report.totals.cost, 230000);
-  assert.equal(report.totals.adsCost, 42000);
-  assert.equal(report.byPlatform.tiktok.revenue, 80000);
-  assert.equal(report.byPlatform.tiktok.adsCost, 12000);
+    sale("shopee"), sale("shopee", 1), sale("tiktok", 1),
+    { ...sale("shopee"), approvalStatus: "pending" },
+    { ...sale("shopee"), type: "return" },
+    { ...sale("shopee"), source: "product_update" }
+  ], [closing("2026-11-03", 10000, 5000)]);
+  assert.equal(report.totals.orders, 3);
+  assert.equal(report.totals.quantity, 4);
+  assert.equal(report.totals.revenue, 400000);
+  assert.equal(report.totals.costBeforeAds, 260000);
+  assert.equal(report.totals.adsCost, 15000);
+  assert.equal(report.totals.cost, 275000);
+  assert.equal(report.totals.profit, 125000);
+  assert.equal(report.byPlatform.shopee.profit, 95000);
+  assert.equal(report.byPlatform.tiktok.profit, 30000);
+  assert.equal(report.byDay[0].profit, 125000);
+  assert.equal(report.totals.unclosedDays, 0);
 });
-test("phiếu cũ chưa có giá được báo riêng thay vì gán doanh thu bằng không", () => {
-  const report = summarizeMovements([{ type: "export", approvalStatus: "approved", platform: "shopee", date: new Date("2026-11-04"), items: [{ amount: 3 }] }]);
-  assert.equal(report.totals.unpricedItems, 3);
+
+test("thay đổi tỷ lệ Ads tham khảo không thay đổi báo cáo nếu giá nhập và phí không đổi", () => {
+  const movement = sale("shopee");
+  const actual = [closing("2026-11-03", 20000, 0)];
+  const before = summarizeMovements([movement], actual);
+  movement.items[0].saleSnapshot.adsPercentApplied = 99;
+  movement.items[0].saleSnapshot.unitAdsCost = 99000;
+  movement.items[0].saleSnapshot.unitProfit = -64000;
+  assert.deepEqual(summarizeMovements([movement], actual), before);
+});
+
+test("ngày không bán hàng vẫn trừ chi phí quảng cáo và có thể phát sinh lỗ", () => {
+  const report = summarizeMovements([], [closing("2026-11-04", 15000, 20000)]);
+  assert.equal(report.totals.revenue, 0);
+  assert.equal(report.totals.profit, -35000);
+  assert.equal(report.byPlatform.tiktok.profit, -20000);
+  assert.equal(report.byDay[0].adsRecorded, true);
+});
+
+test("phân biệt chưa nhập Ads với đã nhập 0, không thay bằng Ads ước tính", () => {
+  const unclosed = summarizeMovements([sale("shopee")]);
+  assert.equal(unclosed.totals.adsCost, 0);
+  assert.equal(unclosed.totals.unclosedDays, 1);
+  assert.equal(unclosed.byDay[0].adsRecorded, false);
+  const zero = summarizeMovements([sale("shopee")], [closing("2026-11-03", 0, 0)]);
+  assert.equal(zero.totals.unclosedDays, 0);
+  assert.equal(zero.byDay[0].adsRecorded, true);
+});
+
+test("phiếu cũ thiếu dữ liệu giá hoặc không tách được Ads được báo riêng", () => {
+  const movement = sale("shopee");
+  movement.items[0].saleSnapshot = { unitRevenue: 100000, unitProfit: 20000 };
+  const report = summarizeMovements([movement, { ...sale("shopee"), items: [{ amount: 3 }] }]);
+  assert.equal(report.totals.unpricedItems, 5);
   assert.equal(report.totals.revenue, 0);
 });
 
-test("báo cáo dùng tiền Ads đã lưu theo thực nhận; phiếu cũ giữ cách tính lịch sử", () => {
-  const current = sale("export", "approved", "shopee", 2, 70966, 10000);
-  current.items[0].saleSnapshot.unitAdsCost = 7054.65;
-  current.items[0].saleSnapshot.pricingVersion = 2;
-  const legacy = sale("export", "approved", "shopee", 1, 100000, 20000);
-  const report = summarizeMovements([current, legacy]);
-  assert.equal(report.totals.adsCost, 7054.65 * 2 + 15000);
-  assert.equal(report.byPlatform.shopee.adsCost, report.totals.adsCost);
-  assert.equal(report.byDay[0].adsCost, report.totals.adsCost);
-  current.items[0].saleSnapshot.unitAdsCost = 0;
-  assert.equal(summarizeMovements([current]).totals.adsCost, 0);
+test("tách Ads tham khảo từ snapshot cũ trước khi trừ chi phí thực tế", () => {
+  assert.equal(costBeforeAds({ unitRevenue: 100000, unitProfit: 20000, adsPercentApplied: 15 }), 65000);
+  assert.equal(costBeforeAds({ unitRevenue: 100000, unitCost: 80000, unitAdsCost: 12000 }), 68000);
+  assert.equal(costBeforeAds({ unitRevenue: 100000, unitCost: 80000, unitAdsCost: 0 }), 80000);
+});
+
+test("Ads từng ngày chỉ được trừ vào ngày đó và tổng sàn khớp tổng tháng", () => {
+  const report = summarizeMovements([sale("shopee", 1, "2026-11-01"), sale("tiktok", 2, "2026-11-02")], [
+    closing("2026-11-01", 1000, 0), closing("2026-11-02", 0, 4000)
+  ]);
+  assert.equal(report.byDay[0].profit, 66000);
+  assert.equal(report.byDay[1].profit, 34000);
+  assert.equal(report.totals.profit, 100000);
+  assert.equal(report.byPlatform.shopee.profit + report.byPlatform.tiktok.profit, report.totals.profit);
 });

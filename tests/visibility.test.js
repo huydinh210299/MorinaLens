@@ -8,6 +8,7 @@ const view = (name, locals) => ejs.renderFile(path.join(__dirname, "..", "views"
   money: (value) => `${value} đ`,
   dateTime: () => "03/11/2026",
   dateOnly: () => "03/11/2026",
+  dateInput: () => "2026-11-03",
   csrfToken: "test-token",
   page: 1, total: 1, limit: 20,
   ...locals
@@ -45,4 +46,32 @@ test("trang tổng quan staff không hiện trạng thái cấu hình sàn", asy
   assert.match(html, /Xem sản phẩm/);
   assert.ok(!html.includes("Sàn bán hàng"));
   assert.ok(!html.includes("Cấu hình phí"));
+});
+
+for (const role of ["admin", "staff"]) {
+  test(`danh sách phiếu kho ${role} chỉ hiện SKU và lượng, ghi chú chỉ cho điều chỉnh hoặc hoàn`, async () => {
+    const movement = { _id: "movement", type: "export", source: "form", platform: "shopee", approvalStatus: "pending",
+      date: new Date("2026-11-03"), items: [{ sku: "LENS-01", amount: 3,
+        saleSnapshot: { listPrice: 73111, unitRevenue: 73222, unitProfit: 73333, adsPercentApplied: 17 } }] };
+    const html = await view("inventory/index.ejs", { currentUser: { role }, type: "", platform: "", status: "", items: [
+      { ...movement, note: "GHI_CHU_XUAT_AN" },
+      { ...movement, type: "import", note: "GHI_CHU_NHAP_AN" },
+      { ...movement, type: "return", note: "Ghi chú hàng hoàn" },
+      { ...movement, source: "product_update", note: "Điều chỉnh tồn <script>bad()</script>" }
+    ] });
+    assert.match(html, /LENS-01<\/strong> × 3/);
+    assert.match(html, /Ghi chú hàng hoàn/);
+    assert.match(html, /Điều chỉnh tồn &lt;script&gt;/);
+    for (const hidden of ["Giá bán:", "Ads tham khảo", "Doanh thu theo phiếu", "Lợi nhuận theo Ads", "73111", "73222", "73333", "GHI_CHU_XUAT_AN", "GHI_CHU_NHAP_AN", "<script>bad"]) {
+      assert.ok(!html.includes(hidden), `Không được hiển thị ${hidden}`);
+    }
+  });
+}
+
+test("form phiếu có số tồn cho từng SKU và vùng hiển thị ước tính", async () => {
+  const html = await view("inventory/form.ejs", { title: "Tạo phiếu kho", item: null,
+    products: [{ sku: "LENS-01", name: "Lens", quantity: 8, availableQuantity: 8 }] });
+  assert.match(html, /data-quantity="8"/);
+  assert.match(html, /class="stock-preview muted" aria-live="polite"/);
+  assert.match(html, /Số tồn đã tính cả phiếu đang chờ duyệt/);
 });

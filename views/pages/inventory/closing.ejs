@@ -1,0 +1,24 @@
+<div class="page-head">
+  <div><p class="eyebrow">Kho và quảng cáo</p><h1>Chốt ngày và quảng cáo</h1><p class="muted">Kiểm tra phiếu kho, nhập tổng tiền Ads thực tế và duyệt cả ngày.</p></div>
+  <a class="button secondary" href="/inventory?status=pending">Phiếu chờ duyệt</a>
+</div>
+<section class="panel"><form method="get" action="/inventory/closing" class="inline-form"><label>Ngày cần chốt<input type="date" name="date" required max="<%= today %>" value="<%= date %>"></label><button class="button secondary">Xem ngày</button></form>
+  <% if (closing) { %><p class="muted">Lần chốt gần nhất: <%= dateTime(closing.closedAt) %> · <%= closing.closedBy?.username || 'Quản trị viên' %>. Có thể cập nhật tổng tiền Ads hoặc duyệt phiếu bổ sung.</p><% } else { %><p class="muted">Ngày này chưa ghi nhận chi phí quảng cáo thực tế.</p><% } %>
+</section>
+<div class="stats"><div class="stat"><strong><%= total %></strong><span>Phiếu chờ duyệt</span></div><div class="stat"><strong><%= counts.import %> / <%= counts.export %> / <%= counts.return %></strong><span>Phiếu nhập / xuất / hoàn chờ duyệt</span></div><div class="stat"><strong><%= approvedCount %></strong><span>Phiếu đã duyệt trong ngày</span></div><div class="stat"><strong><%= closing ? money(closing.shopeeAds + closing.tiktokAds) : 'Chưa nhập' %></strong><span>Tổng Ads đã ghi nhận</span></div></div>
+<section class="panel">
+  <h2>Quảng cáo thực tế ngày <%= date.split('-').reverse().join('/') %></h2>
+  <p class="muted">Nhập tổng tiền đã chạy quảng cáo cả ngày cho từng sàn; nhập 0 nếu không chạy. Lưu lại sẽ thay số tiền cũ, không cộng thêm. Tỷ lệ Ads của sản phẩm chỉ dùng để tham khảo giá.</p>
+  <form method="post" action="/inventory/closing" class="stack" data-confirm="Lưu tổng tiền quảng cáo thực tế và duyệt TẤT CẢ <%= total %> phiếu đang chờ của ngày <%= date %>, gồm cả các trang khác?">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="date" value="<%= date %>"><input type="hidden" name="reviewVersion" value="<%= reviewVersion %>">
+    <div class="form-grid"><label>Tiền Ads Shopee (₫)<input type="number" name="shopeeAds" min="0" max="1000000000000" step="1" required value="<%= closing?.shopeeAds ?? 0 %>" placeholder="Nhập 0 nếu không chạy"></label><label>Tiền Ads TikTok (₫)<input type="number" name="tiktokAds" min="0" max="1000000000000" step="1" required value="<%= closing?.tiktokAds ?? 0 %>" placeholder="Nhập 0 nếu không chạy"></label></div>
+    <label>Ghi chú<textarea name="note" rows="2" maxlength="500"><%= closing?.note || '' %></textarea></label>
+    <div class="actions"><button class="button">Lưu Ads và duyệt <%= total %> phiếu</button><a class="button secondary" href="/revenue?month=<%= date.slice(0, 7) %>">Xem báo cáo tháng</a></div>
+    <small class="muted">Duyệt toàn bộ phiếu nhập, xuất, hoàn và điều chỉnh kho đang chờ trong ngày đã chọn, của cả admin và nhân viên. Tồn kho đã cập nhật khi tạo phiếu; chốt ngày không thay đổi tồn lần nữa và không cộng công.</small>
+  </form>
+</section>
+<section class="panel"><h2>Phiếu chờ duyệt trong ngày</h2><div class="table-wrap"><table><thead><tr><th>Loại phiếu</th><th>Sàn</th><th>Sản phẩm</th><th>Người tạo</th><th>Ghi chú</th><th>Thao tác</th></tr></thead><tbody>
+  <% for (const item of items) { %><tr><td><span class="badge <%= item.type %>"><%= { import: 'Nhập', export: 'Xuất', return: 'Hoàn hàng' }[item.type] %></span><% if (item.source === 'product_update') { %><br><small>Điều chỉnh từ sản phẩm</small><% } %></td><td><%= item.platform === 'tiktok' ? 'TikTok' : 'Shopee' %></td><td><% for (const row of item.items) { %><div><strong><%= row.sku %></strong> × <%= row.amount %></div><% } %></td><td><%= item.createdBy?.username || '—' %></td><td><%= item.note || '—' %></td><td><a href="/inventory/<%= item._id %>/edit">Chỉnh sửa</a></td></tr><% } %>
+  <% if (!items.length) { %><tr><td colspan="6" class="empty">Không có phiếu chờ duyệt. Vẫn có thể ghi nhận hoặc cập nhật tiền quảng cáo ngày này.</td></tr><% } %>
+  </tbody></table></div><%- include('../../partials/pagination', { base: '/inventory/closing', page, total, limit, query: 'date=' + date }) %>
+</section>

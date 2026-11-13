@@ -6,7 +6,7 @@ const AppError = require("../utils/errors");
 async function index(req, res) {
   const currentPage = page(req.query.page), limit = 20;
   const [items, total] = await Promise.all([User.find().sort({ username: 1 }).skip((currentPage - 1) * limit).limit(limit).lean(), User.countDocuments()]);
-  res.render("pages/users/index", { title: "Nhân viên", items, total, page: currentPage, limit });
+  res.render("pages/users/index", { title: "Nhân viên", items: items.map((item) => ({ ...item, totalOrders: service.countOrders(item) })), total, page: currentPage, limit });
 }
 async function form(req, res) {
   const item = req.params.id ? await User.findById(req.params.id).lean() : null;
@@ -19,7 +19,7 @@ async function detail(req, res) {
   ]);
   if (!item) throw new AppError("Không tìm thấy nhân viên.", 404);
   item.payroll = item.payroll.map((row) => ({ ...row, paidTotal: service.paidTotal(row) }));
-  res.render("pages/users/detail", { title: `Nhân viên ${item.username}`, item, defaultOrderRate });
+  res.render("pages/users/detail", { title: `Nhân viên ${item.username}`, item, defaultOrderRate, totalOrders: service.countOrders(item) });
 }
 async function create(req, res) { await service.create(req.body); res.redirect("/users?message=" + encodeURIComponent("Đã thêm nhân viên.")); }
 async function update(req, res) { await service.update(req.params.id, req.body, req.user._id); res.redirect("/users?message=" + encodeURIComponent("Đã cập nhật nhân viên.")); }

@@ -6,7 +6,7 @@
     <% if (!hasCompleteConfig(config)) { %><p class="muted">Chưa đủ cấu hình <%= label %> để tính giá bán thực và lợi nhuận.</p><% } %>
   <% } %>
 </section><% } %>
-<section class="panel"><% if (isAdmin) { %><p class="muted">“Điểm hòa vốn” theo file Excel là tổng chi phí tại giá bán đang nhập. Ads tính trên thực nhận ước tính sau phí sàn và thuế; tắt Ads thì chi phí bằng 0. Voucher shop là số tiền giảm cho mỗi sản phẩm trong phép ước tính.</p><% } %>
+<section class="panel"><% if (isAdmin) { %><p class="muted">“Điểm hòa vốn” theo file Excel là tổng chi phí tại giá bán đang nhập. Ads tính trên thực nhận ước tính sau phí sàn và thuế; tắt Ads thì chi phí bằng 0. Voucher shop là số tiền giảm cho mỗi sản phẩm trong phép ước tính. Các chỉ số này để tham khảo tính giá; báo cáo dùng tiền quảng cáo thực tế khi chốt ngày.</p><% } %>
   <form class="filter" method="get"><label>Tìm kiếm<input name="q" value="<%= q %>" placeholder="SKU hoặc tên sản phẩm"></label><button class="button secondary">Tìm kiếm</button></form>
   <div class="table-wrap"><table class="<%= isAdmin ? 'product-table' : '' %>"><thead><tr><th>SKU / Tên</th><th>Tồn</th><% if (isAdmin) { %><th>Giá nhập</th><% } %><th>Giá Shopee</th><th>Giá TikTok</th><% if (isAdmin) { %><th>Tạo / Cập nhật</th><th>Thao tác</th><% } %></tr></thead><tbody>
     <% for (const item of items) { %><tr>

@@ -12,6 +12,7 @@ const saleSnapshotSchema = new mongoose.Schema({
   config: { type: configSnapshotSchema, default: null },
   unitRevenue: { type: Number, required: true },
   unitCost: { type: Number, required: true },
+  unitCostBeforeAds: { type: Number, default: null },
   unitProfit: { type: Number, required: true },
   unitAdsCost: { type: Number, default: null, min: 0 },
   adsPercentApplied: { type: Number, required: true, min: 0, max: 100 }
@@ -30,9 +31,10 @@ const schema = new mongoose.Schema({
   note: { type: String, default: "" },
   source: { type: String, enum: ["form", "product_update"], default: "form" },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  requiresApproval: { type: Boolean, default: false },
-  approvalStatus: { type: String, enum: ["pending", "approved"], default: "approved" },
+  requiresApproval: { type: Boolean, default: true },
+  approvalStatus: { type: String, enum: ["pending", "approved"], default: "pending" },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-  approvedAt: { type: Date, default: null }
+  approvedAt: { type: Date, default: null },
+  approvalBatch: { type: String, default: null }
 }, { timestamps: true });
 module.exports = mongoose.model("ImportAndExport", schema);

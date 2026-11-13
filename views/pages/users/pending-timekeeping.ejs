@@ -1,0 +1,19 @@
+<div class="page-head">
+  <div><p class="eyebrow">Nhân sự</p><h1>Duyệt chấm công</h1><p class="muted"><%= total %> bản ghi chờ duyệt trong tháng <%= month %>.</p></div>
+  <div class="actions"><a class="button secondary" href="/users">Quản lý nhân viên</a><form method="get" action="/users/timekeeping/pending" class="inline-form"><label>Tháng<input type="month" name="month" required value="<%= month %>"></label><button class="button secondary">Xem</button></form></div>
+</div>
+<section class="panel">
+  <p class="muted">Duyệt số đơn nhân viên đã đóng trong ngày để cập nhật lương tạm tính. Các điều chỉnh thủ công được cộng riêng; khoản đã thanh toán giữ nguyên. Phiếu kho không tự cộng công.</p>
+  <div class="table-wrap"><table><thead><tr><th>Nhân viên</th><th>Ngày làm việc</th><th>Số đơn chấm công</th><th>Ghi chú</th><th>Gửi / Cập nhật</th><th>Thao tác</th></tr></thead><tbody>
+  <% for (const row of items) { %>
+    <tr><td><a href="/users/<%= row.userId %>"><strong><%= row.username %></strong></a></td><td><%= dateOnly(row.date) %></td><td><strong><%= row.amount %></strong></td><td><%= row.note || '—' %></td><td><small><%= dateTime(row.updatedAt) %></small></td>
+      <td><div class="actions">
+        <form method="post" action="/users/<%= row.userId %>/timekeeping/<%= row._id %>/approve" data-confirm="Duyệt số đơn chấm công và cập nhật lương cho nhân viên?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="button">Duyệt</button></form>
+        <form method="post" action="/users/<%= row.userId %>/timekeeping/<%= row._id %>?_method=DELETE" data-confirm="Từ chối và xóa chấm công này? Nhân viên có thể gửi lại."><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Từ chối</button></form>
+      </div></td>
+    </tr>
+  <% } %>
+  <% if (!items.length) { %><tr><td colspan="6" class="empty">Không có chấm công chờ duyệt trong tháng này.</td></tr><% } %>
+  </tbody></table></div>
+  <%- include('../../partials/pagination', { base: '/users/timekeeping/pending', page, total, limit, query: 'month=' + month }) %>
+</section>

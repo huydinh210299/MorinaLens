@@ -3,6 +3,7 @@ const ImportAndExport = require("../models/ImportAndExport");
 const AppError = require("../utils/errors");
 const input = require("../utils/input");
 const { runInventory } = require("./inventoryService");
+const { today, parseDay } = require("../utils/businessDate");
 
 function parseIdentity(body) {
   const sku = input.text(body.sku, "SKU", 60).toUpperCase();
@@ -68,11 +69,10 @@ async function update(id, body, actor) {
         await item.save({ session });
         saved = true;
         if (difference !== 0) {
-          const now = new Date();
-          await ImportAndExport.create([{ type: difference > 0 ? "import" : "export", date: now,
+          await ImportAndExport.create([{ type: difference > 0 ? "import" : "export", date: parseDay(today()),
             platform: "shopee", items: [{ product: item._id, sku: item.sku, amount: Math.abs(difference) }],
             source: "product_update", note: `Điều chỉnh tồn kho trong sản phẩm: ${before.quantity} → ${quantity}.`,
-            createdBy: actor._id, requiresApproval: false, approvalStatus: "approved", approvedBy: actor._id, approvedAt: now }], { session });
+            createdBy: actor._id, requiresApproval: true, approvalStatus: "pending", approvedBy: null, approvedAt: null }], { session });
         }
         return item;
       } catch (error) {

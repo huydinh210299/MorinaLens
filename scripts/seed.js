@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const User = require("../models/User");
 const Configuration = require("../models/Configuration");
+const DailyClosing = require("../models/DailyClosing");
 const { defaults, systemDefaults } = require("../utils/configuration");
 const { backfillAutomaticPayroll } = require("../services/userService");
 const { migratePricingConfiguration } = require("../services/configurationService");
@@ -26,6 +27,7 @@ async function seed() {
     await Configuration.updateOne({ platform: "system", key }, { $setOnInsert: { platform: "system", key, label, value, unit } }, { upsert: true });
   }
   await migratePricingConfiguration();
+  await DailyClosing.init();
   const updatedStaff = await backfillAutomaticPayroll();
   console.log(`Đã kiểm tra admin, 10 cấu hình Shopee, đơn giá mỗi đơn và lương tự động cho ${updatedStaff} nhân viên.`);
 }

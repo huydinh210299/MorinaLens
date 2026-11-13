@@ -138,7 +138,7 @@ test("từ chối ID trùng trước khi chạy bất cứ migration nào", asyn
   assert.equal(db.calls.writes, 0);
 });
 
-test("lệnh dùng khi build chạy Bear lens lần đầu và skip các lần sau qua cùng lịch sử", async (t) => {
+test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng lịch sử", async (t) => {
   const mongoose = require("mongoose");
   const Product = require("../models/Product");
   const { main } = require("../scripts/migrate");
@@ -182,27 +182,40 @@ test("lệnh dùng khi build chạy Bear lens lần đầu và skip các lần s
   assert.equal(first[0].result.created, 43);
   assert.equal(first[1].status, "completed");
   assert.equal(first[1].result.updated, 43);
-  assert.equal(products.size, 43);
+  assert.equal(first[2].id, "20261112_001_dreammoon");
+  assert.equal(first[2].status, "completed");
+  assert.equal(first[2].result.created, 12);
+  assert.equal(first[2].result.totalQuantity, 64);
+  assert.equal(first[2].result.products, undefined);
+  assert.equal(products.size, 55);
+  assert.equal(products.get("DREAMMOON_PINK_SUMMER").purchasePrice, 25000);
+  assert.equal(products.get("DREAMMOON_PINK_SUMMER").shopeePrice, 73000);
   assert.ok([...products.values()].every((product) => product.ads.shopee.enabled));
   // Tồn đã bán không bị nhập lại trong build sau.
   products.get("BEAR_AMBER_BROWN").quantity = 0;
+  products.get("DREAMMOON_CHOCO_NATURE").quantity = 3;
   const second = await main(["--apply"]);
   assert.equal(second[0].status, "skipped");
   assert.equal(second[1].status, "skipped");
-  assert.equal(find.mock.callCount(), 1);
+  assert.equal(second[2].status, "skipped");
+  assert.equal(find.mock.callCount(), 2);
+  assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 3);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
   assert.equal(db.documents.get("20261111_001_bear_lens").status, "completed");
   // Mô phỏng local/VPS chỉ đã hoàn tất bước nhập ở phiên bản trước.
   db.documents.delete("20261111_002_bear_lens_shopee_ads");
-  for (const product of products.values()) product.ads.shopee.enabled = false;
+  for (const product of products.values()) {
+    if (product.sku.startsWith("BEAR_")) product.ads.shopee.enabled = false;
+  }
   const upgrade = await main(["--apply"]);
   assert.equal(upgrade[0].status, "skipped");
   assert.equal(upgrade[1].status, "completed");
   assert.equal(upgrade[1].result.updated, 43);
-  assert.equal(find.mock.callCount(), 1);
+  assert.equal(upgrade[2].status, "skipped");
+  assert.equal(find.mock.callCount(), 2);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
   assert.ok([...products.values()].every((product) => product.ads.shopee.enabled));
   const output = logs.mock.calls.map((call) => call.arguments[0]).filter((line) => line.startsWith("{"));
   assert.deepEqual(output.map((line) => JSON.parse(line).status),
-    ["completed", "completed", "skipped", "skipped", "skipped", "completed"]);
+    ["completed", "completed", "completed", "skipped", "skipped", "skipped", "skipped", "completed", "skipped"]);
 });

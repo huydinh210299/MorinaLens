@@ -1,0 +1,14 @@
+[
+  { "name": "Pink Summer", "sku": "DREAMMOON_PINK_SUMMER", "quantity": 2 },
+  { "name": "Choco Nature", "sku": "DREAMMOON_CHOCO_NATURE", "quantity": 10 },
+  { "name": "Black Kelly", "sku": "DREAMMOON_BLACK_KELLY", "quantity": 2 },
+  { "name": "Black Pastel", "sku": "DREAMMOON_BLACK_PASTEL", "quantity": 6 },
+  { "name": "Gray Tiana", "sku": "DREAMMOON_GRAY_TIANA", "quantity": 6 },
+  { "name": "Gray Helena", "sku": "DREAMMOON_GRAY_HELENA", "quantity": 6 },
+  { "name": "Choco Kimchi", "sku": "DREAMMOON_CHOCO_KIMCHI", "quantity": 8 },
+  { "name": "Choco Opera", "sku": "DREAMMOON_CHOCO_OPERA", "quantity": 6 },
+  { "name": "Black Mario", "sku": "DREAMMOON_BLACK_MARIO", "quantity": 4 },
+  { "name": "Gray Greenery", "sku": "DREAMMOON_GRAY_GREENERY", "quantity": 4 },
+  { "name": "Gray Louis", "sku": "DREAMMOON_GRAY_LOUIS", "quantity": 4 },
+  { "name": "Choco Bella", "sku": "DREAMMOON_CHOCO_BELLA", "quantity": 6 }
+]

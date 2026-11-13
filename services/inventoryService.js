@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Movement = require("../models/ImportAndExport");
-const User = require("../models/User");
-const { recalculatePayroll, getDefaultOrderRate } = require("./userService");
 const AppError = require("../utils/errors");
 const input = require("../utils/input");
 const pricing = require("./pricingService");
@@ -24,6 +22,23 @@ async function rollbackStock(applied) {
   for (const { productId, delta } of applied.reverse()) {
     await Product.updateOne({ _id: productId }, { $inc: { quantity: -delta } });
   }
+}
+
+async function getFormProducts(movement = null) {
+  const products = await Product.find().sort({ sku: 1 }).select("sku name quantity").lean();
+  const previousDeltas = new Map();
+  if (movement) {
+    const sign = movement.type === "export" ? -1 : 1;
+    for (const item of movement.items) {
+      const key = String(item.product);
+      previousDeltas.set(key, (previousDeltas.get(key) || 0) + sign * item.amount);
+    }
+  }
+  // Stored quantities already include pending movements. Undo only the edited
+  // movement so its replacement can be previewed without counting it twice.
+  return products.map((product) => ({ ...product,
+    availableQuantity: product.quantity - (previousDeltas.get(String(product._id)) || 0)
+  }));
 }
 
 function parse(body, role) {
@@ -65,7 +80,8 @@ async function prepareSaleItems(data, session, previous = null) {
     if (price === null || price === undefined) throw new AppError(`SKU ${item.sku} chưa có giá bán trên sàn ${data.platform === "shopee" ? "Shopee" : "TikTok"}.`);
     const result = pricing.calculateProduct(product, config, data.platform);
     item.saleSnapshot = { pricingVersion: pricing.PRICING_VERSION, listPrice: price, purchasePrice: product.purchasePrice, config: { ...config },
-      unitRevenue: result.sale, unitCost: result.cost, unitProfit: result.profit, unitAdsCost: result.ads, adsPercentApplied: result.adsPercent };
+      unitRevenue: result.sale, unitCost: result.cost, unitCostBeforeAds: result.cost - result.ads,
+      unitProfit: result.profit, unitAdsCost: result.ads, adsPercentApplied: result.adsPercent };
   }
 }
 
@@ -88,51 +104,10 @@ async function create(body, user) {
     try {
       await prepareSaleItems(data, session);
       await adjust(data.items, data.type, 1, session, applied);
-      const requiresApproval = user.role === "staff";
-      await Movement.create([{ ...data, createdBy: user._id, requiresApproval,
-        approvalStatus: requiresApproval ? "pending" : "approved",
-        approvedBy: requiresApproval ? null : user._id,
-        approvedAt: requiresApproval ? null : new Date() }], { session });
+      await Movement.create([{ ...data, createdBy: user._id, requiresApproval: true,
+        approvalStatus: "pending", approvedBy: null, approvedAt: null }], { session });
     } catch (error) {
       if (!session) await rollbackStock(applied);
-      throw error;
-    }
-  });
-}
-function applyMovementOrder(user, movement, deleting = false, defaultRate = 1500) {
-  const existing = user.orders.find((row) => String(row.movement) === String(movement._id));
-  const eligible = !deleting && movement.requiresApproval && movement.approvalStatus === "approved" && movement.type === "export";
-  if (!existing && !eligible) return false;
-  const months = new Set();
-  if (existing) months.add(existing.date.toISOString().slice(0, 7));
-  if (eligible) {
-    if (existing) { existing.date = movement.date; existing.amount = 1; }
-    else user.orders.push({ date: movement.date, amount: 1, movement: movement._id });
-    months.add(movement.date.toISOString().slice(0, 7));
-  } else existing.deleteOne();
-  for (const month of months) recalculatePayroll(user, month, defaultRate);
-  return true;
-}
-async function syncMovementOrder(movement, session, deleting = false) {
-  const user = await User.findById(movement.createdBy).session(session);
-  if (!user) throw new AppError("Không tìm thấy nhân viên tạo phiếu.", 404);
-  const defaultRate = await getDefaultOrderRate(session);
-  if (!applyMovementOrder(user, movement, deleting, defaultRate)) return;
-  await user.save({ session });
-}
-async function approve(id, adminId) {
-  await runInventory(async (session) => {
-    const movement = await Movement.findById(id).session(session);
-    if (!movement) throw new AppError("Không tìm thấy phiếu kho.", 404);
-    if (!movement.requiresApproval) throw new AppError("Phiếu này không cần duyệt.");
-    if (movement.approvalStatus === "approved") return syncMovementOrder(movement, session);
-    movement.approvalStatus = "approved";
-    movement.approvedBy = adminId;
-    movement.approvedAt = new Date();
-    await syncMovementOrder(movement, session);
-    try { await movement.save({ session }); }
-    catch (error) {
-      if (!session) await syncMovementOrder({ ...movement.toObject(), approvalStatus: "pending" }, null);
       throw error;
     }
   });
@@ -142,7 +117,6 @@ async function update(id, body) {
   await runInventory(async (session) => {
     const previous = await Movement.findById(id).session(session);
     if (!previous) throw new AppError("Không tìm thấy phiếu kho.", 404);
-    const original = previous.toObject();
     await prepareSaleItems(data, session, previous);
     for (const item of data.items) {
       const product = await Product.findOne({ sku: item.sku }).select("_id").session(session);
@@ -161,7 +135,6 @@ async function update(id, body) {
     collect(previous.items, previous.type, -1);
     collect(data.items, data.type, 1);
     const applied = [];
-    let saved = false;
     try {
       for (const [productId, { sku, delta }] of deltas) {
         if (delta === 0) continue;
@@ -171,13 +144,10 @@ async function update(id, body) {
         if (!product) throw new AppError(`SKU ${sku}: không đủ tồn kho để sửa phiếu.`);
         applied.push({ productId, delta });
       }
-      Object.assign(previous, data);
+      Object.assign(previous, data, { requiresApproval: true, approvalStatus: "pending", approvedBy: null, approvedAt: null, approvalBatch: null });
       await previous.save({ session });
-      saved = true;
-      await syncMovementOrder(previous, session);
     } catch (error) {
       if (!session) {
-        if (saved) await Movement.collection.replaceOne({ _id: previous._id }, original);
         await rollbackStock(applied);
       }
       throw error;
@@ -188,21 +158,16 @@ async function remove(id) {
   await runInventory(async (session) => {
     const previous = await Movement.findById(id).session(session);
     if (!previous) throw new AppError("Không tìm thấy phiếu kho.", 404);
-    const original = previous.toObject();
     const applied = [];
-    let deleted = false;
     try {
       await adjust(previous.items, previous.type, -1, session, applied);
       await previous.deleteOne({ session });
-      deleted = true;
-      await syncMovementOrder(previous, session, true);
     } catch (error) {
       if (!session) {
-        if (deleted) await Movement.collection.insertOne(original);
         await rollbackStock(applied);
       }
       throw error;
     }
   });
 }
-module.exports = { parse, create, approve, update, remove, applyMovementOrder, runInventory };
+module.exports = { parse, create, update, remove, runInventory, getFormProducts };

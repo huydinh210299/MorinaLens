@@ -13,7 +13,7 @@
       <label>Giá bán <%= label %> (₫)<input type="number" name="<%= platform %>Price" min="0" step="any" value="<%= item?.[platform + 'Price'] ?? '' %>"></label>
       <label>Tỷ lệ Ads riêng (%)<input type="number" name="ads[<%= platform %>][percentOverride]" min="0" max="100" step="any" value="<%= item?.ads?.[platform]?.percentOverride ?? '' %>" placeholder="Để trống dùng cấu hình sàn"><small>Để trống: <%= adsDefaults[platform] == null ? 'chưa có cấu hình Ads' : adsDefaults[platform] + '%' %> theo cấu hình sàn. Nhập 0: tính Ads 0%.</small></label>
       <label class="check"><input type="checkbox" name="ads[<%= platform %>][enabled]" <%= item?.ads?.[platform]?.enabled ? 'checked' : '' %>> Chạy Ads trên <%= label %></label>
-    </div><small class="muted">Nếu bật Ads và bỏ trống tỷ lệ riêng, hệ thống dùng tỷ lệ trong cấu hình <%= label %>. Nếu tắt, chi phí Ads của sản phẩm là 0%.</small></div>
+    </div><small class="muted">Tỷ lệ Ads chỉ tham khảo khi tính giá, không thay tiền quảng cáo thực tế trong báo cáo. Nếu bật Ads và bỏ trống tỷ lệ riêng, hệ thống dùng tỷ lệ trong cấu hình <%= label %>. Nếu tắt, Ads tham khảo của sản phẩm là 0%.</small></div>
   <% } %>
   <label>Ghi chú<textarea name="note" rows="3" maxlength="500"><%= item?.note || '' %></textarea></label>
   <div class="actions"><button class="button"><%= item ? 'Cập nhật' : 'Lưu' %></button><a class="button secondary" href="/products">Hủy</a></div>

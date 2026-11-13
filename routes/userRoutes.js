@@ -1,8 +1,17 @@
 const router = require("express").Router();
 const controller = require("../controllers/userController");
-const { adminOnly } = require("../middleware/auth");
+const timekeeping = require("../controllers/timekeepingController");
+const { adminOnly, requireAuth } = require("../middleware/auth");
 const { wrap } = require("../middleware/errors");
+router.use(requireAuth);
+router.get("/timekeeping", wrap(timekeeping.index));
+router.post("/timekeeping", wrap(timekeeping.save));
+router.put("/timekeeping/:entryId", wrap(timekeeping.save));
+router.delete("/timekeeping/:entryId", wrap(timekeeping.cancel));
 router.use(adminOnly);
+router.get("/timekeeping/pending", wrap(timekeeping.pending));
+router.post("/:userId/timekeeping/:entryId/approve", wrap(timekeeping.approve));
+router.delete("/:userId/timekeeping/:entryId", wrap(timekeeping.reject));
 router.get("/", wrap(controller.index));
 router.get("/new", wrap(controller.form));
 router.post("/", wrap(controller.create));

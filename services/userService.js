@@ -50,14 +50,18 @@ async function addOrder(id, body) {
 async function removeOrder(id, entryId) {
   const user = await User.findById(id);
   if (!user || !user.orders.id(entryId)) throw new AppError("Không tìm thấy bản ghi đơn hàng.", 404);
-  if (user.orders.id(entryId).movement) throw new AppError("Đơn từ phiếu kho đã duyệt; hãy sửa hoặc xóa phiếu kho để cập nhật.");
+  if (user.orders.id(entryId).attendance) throw new AppError("Bản ghi chấm công phải được xử lý tại trang chấm công.");
+  if (user.orders.id(entryId).movement) throw new AppError("Đây là lịch sử công tự động cũ, không phải bản ghi điều chỉnh thủ công.");
   const month = user.orders.id(entryId).date.toISOString().slice(0, 7);
   user.orders.id(entryId).deleteOne();
   recalculatePayroll(user, month, await getDefaultOrderRate());
   await user.save();
 }
 function countOrders(user, month) {
-  return user.orders.filter((row) => row.date.toISOString().slice(0, 7) === month).reduce((sum, row) => sum + row.amount, 0);
+  const rows = user.orders.filter((row) => row.approved !== false && (!month || row.date.toISOString().slice(0, 7) === month));
+  const attendanceDays = new Set(rows.filter((row) => row.attendance).map((row) => row.date.toISOString().slice(0, 10)));
+  // Keep legacy credits; approved attendance totals replace legacy credits for the same day.
+  return rows.reduce((sum, row) => sum + (row.movement && attendanceDays.has(row.date.toISOString().slice(0, 10)) ? 0 : row.amount), 0);
 }
 function recalculatePayroll(user, month, defaultRate = systemKeys.ratePerOrder.defaultValue) {
   const orderCount = countOrders(user, month);

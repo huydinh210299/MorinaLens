@@ -75,10 +75,11 @@ test("phiếu xuất lưu đủ đầu vào và tính lại độc lập với c
   assert.equal(recalculated.sale, snapshot.unitRevenue);
   assert.equal(recalculated.cost, snapshot.unitCost);
   assert.equal(recalculated.profit, snapshot.unitProfit);
-  const report = summarizeMovements([state.movement.toObject()]);
+  const report = summarizeMovements([{ ...state.movement.toObject(), approvalStatus: "approved" }]);
   assert.equal(report.totals.revenue, recalculated.sale * 2);
-  assert.equal(report.totals.profit, recalculated.profit * 2);
-  assert.equal(report.totals.adsCost, snapshot.unitAdsCost * 2);
+  assert.ok(Math.abs(report.totals.profit - (recalculated.profit + recalculated.ads) * 2) < 1e-8);
+  assert.equal(report.totals.adsCost, 0);
+  assert.equal(snapshot.unitCostBeforeAds, snapshot.unitCost - snapshot.unitAdsCost);
 });
 
 test("sửa số lượng giữ snapshot dù cấu hình hiện tại không còn đầy đủ", async (t) => {
@@ -90,8 +91,8 @@ test("sửa số lượng giữ snapshot dù cấu hình hiện tại không cò
   await inventory.update(state.movement._id, body("shopee", [{ sku: "LENS-01", amount: 3 }]));
   assert.deepEqual(state.movement.items[0].saleSnapshot.toObject(), snapshot);
   assert.equal(pricing.getConfig.mock.callCount(), 1);
-  const report = summarizeMovements([state.movement.toObject()]);
-  assert.equal(report.totals.profit, snapshot.unitProfit * 3);
+  const report = summarizeMovements([{ ...state.movement.toObject(), approvalStatus: "approved" }]);
+  assert.ok(Math.abs(report.totals.profit - (snapshot.unitProfit + snapshot.unitAdsCost) * 3) < 1e-8);
 });
 
 test("đổi sàn chụp cấu hình, giá và Ads của sàn mới", async (t) => {
