@@ -209,7 +209,7 @@ Workflow ghi `/opt/morina-lens/shared/.env` với quyền `600`, tạo symlink `
 
 Job dùng environment `production`. Nếu environment có secret trùng tên, kiểm tra **Settings → Environments → production** để tránh giá trị cũ ghi đè repository secret. Nếu có quy tắc yêu cầu reviewer, job sẽ chờ phê duyệt theo cấu hình đó.
 
-## 6. Deploy lần đầu và bật tự deploy
+## 6. Deploy lần đầu và tự deploy
 
 ### 6.1. Chuẩn bị phiên bản mã nguồn
 
@@ -229,24 +229,15 @@ Kiểm tra thay đổi cần triển khai, commit các file liên quan rồi pus
 2. Tại trang danh sách workflow runs, chọn **Run workflow → main → Run workflow**.
 3. Mở lần chạy mới, chờ cả `validate` và `deploy` thành công.
 
-Sự kiện `workflow_dispatch` cho deploy dù chưa bật biến tự deploy. **Re-run all jobs** của một lần chạy `push` vẫn dùng sự kiện cũ, không chuyển thành `workflow_dispatch`.
+Cả push lên `main` và **Run workflow** đều chạy deploy khi `validate` thành công. Không cần biến bật/tắt deploy. Để áp dụng workflow vừa sửa, push phiên bản mới lên `main` hoặc chạy **Run workflow** sau khi thay đổi đã có trên GitHub; re-run lượt cũ không lấy workflow mới.
 
 Workflow sẽ kiểm tra code, tải release, ghi `.env`, cài dependencies production, kiểm tra cấu hình, chạy seed, chạy `npm run build`, thay tiến trình `morina-lens`, kiểm tra health rồi cập nhật symlink `current`.
 
 Mỗi lần build tự kiểm tra collection `migrations` trong database `morina-lens`: script đã `completed` thì báo `skipped`, script chưa hoàn tất thì chạy và lưu lịch sử. Xem kết quả trong bước **Build and activate release** của job `deploy`. Migration lỗi sẽ làm build/deploy dừng trước khi dừng tiến trình PM2 cũ. Thêm script mới vào `scripts/migrations/index.js` với ID mới để build sau tự chạy.
 
-### 6.3. Bật deploy khi push
+### 6.3. Tự deploy khi push
 
-Vào **Settings → Secrets and variables → Actions → Variables → New repository variable**:
-
-| Trường | Giá trị |
-| --- | --- |
-| Name | `MORINA_LENS_DEPLOY_ENABLED` |
-| Value | `true` |
-
-Phải là **Repository Variable**, không phải Secret hoặc chỉ là variable trong environment `production`, vì điều kiện job được đánh giá trước khi job chạy.
-
-Khi chưa bật, push vẫn chạy `validate` nhưng `deploy` bị `skipped`. Khi đã bật, push `main` tự deploy. Mỗi repo có cơ chế xếp hàng deploy riêng; không có khóa chung giữa Morina và Lens.
+Mỗi lần push lên `main` tự chạy `validate`, sau đó deploy nếu kiểm tra thành công. Không cần tạo Repository Variable để bật deploy. Các kiểm tra secrets, cấu hình môi trường, migration và health vẫn được thực hiện. Mỗi repo có cơ chế xếp hàng deploy riêng; không có khóa chung giữa Morina và Lens.
 
 ### 6.4. Kiểm tra ứng dụng trên VPS
 
@@ -368,7 +359,7 @@ Nếu PM2 cùng tài khoản đã tự khởi động từ Morina, `pm2 save` l�
 ## 10. Deploy những lần sau và giới hạn hiện tại
 
 1. Kiểm tra code local bằng `npm run check` và xem `git status`.
-2. Commit các file cần triển khai, push `main` khi sẵn sàng; biến `MORINA_LENS_DEPLOY_ENABLED=true` cần được bật.
+2. Commit các file cần triển khai, push `main` khi sẵn sàng; workflow tự deploy sau khi `validate` thành công.
 3. Theo dõi `validate` và `deploy` trong Actions.
 4. Kiểm tra log, health, nghiệp vụ vừa sửa và web còn lại.
 
@@ -388,7 +379,7 @@ Khi cần khôi phục, xem log, xác định release tốt và tính tương th
 
 | Hiện tượng | Kiểm tra và xử lý |
 | --- | --- |
-| `validate` xanh, `deploy` skipped | Chạy lượt mới bằng **Run workflow**, hoặc thêm **Repository Variable** `MORINA_LENS_DEPLOY_ENABLED=true`. Re-run một sự kiện push vẫn là push. |
+| `validate` xanh, `deploy` skipped | Kiểm tra lượt chạy có dùng workflow mới đã bỏ điều kiện bật/tắt deploy hay chưa. Push thay đổi workflow lên `main` rồi theo dõi lượt mới; re-run lượt cũ không lấy workflow mới. |
 | Job chờ phê duyệt | Kiểm tra quy tắc environment `production`; người có quyền phê duyệt nếu được yêu cầu. |
 | `Permission denied (publickey)` | Đối chiếu private key trong `VPS_SSH_KEY`, public key trong `authorized_keys` của đúng `VPS_USER`, quyền file SSH; kiểm tra key từ Windows theo mục 4. |
 | `mkdir /opt/morina-lens/releases` hoặc `shared`: `Permission denied` | Chạy lệnh `sudo install -d ...` ở mục 2, owner phải đúng `VPS_USER`. Không sửa quyền thư mục Morina. |

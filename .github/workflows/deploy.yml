@@ -24,7 +24,6 @@ jobs:
 
   deploy:
     needs: validate
-    if: ${{ github.event_name == 'workflow_dispatch' || vars.MORINA_LENS_DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     environment: production
     concurrency:
