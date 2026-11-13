@@ -6,7 +6,6 @@ const User = require("../models/User");
 const Configuration = require("../models/Configuration");
 const DailyClosing = require("../models/DailyClosing");
 const { defaults, systemDefaults } = require("../utils/configuration");
-const { backfillAutomaticPayroll } = require("../services/userService");
 const { migratePricingConfiguration } = require("../services/configurationService");
 
 async function seed() {
@@ -28,8 +27,7 @@ async function seed() {
   }
   await migratePricingConfiguration();
   await DailyClosing.init();
-  const updatedStaff = await backfillAutomaticPayroll();
-  console.log(`Đã kiểm tra admin, 10 cấu hình Shopee, đơn giá mỗi đơn và lương tự động cho ${updatedStaff} nhân viên.`);
+  console.log("Đã kiểm tra admin, 10 cấu hình Shopee và tỷ lệ hoa hồng nhân viên.");
 }
 if (require.main === module) connectDB().then(seed).catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => mongoose.disconnect());
 module.exports = seed;

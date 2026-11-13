@@ -12,7 +12,7 @@
     <% if (currentUser) { %>
       <nav aria-label="Điều hướng chính">
         <a href="/dashboard">Tổng quan</a><a href="/products">Sản phẩm</a><a href="/inventory">Nhập xuất kho</a>
-        <% if (currentUser.role === 'staff') { %><a href="/users/timekeeping">Chấm công</a><% } else { %><a href="/users/timekeeping/pending">Duyệt chấm công</a><% } %>
+        <% if (currentUser.role === 'staff') { %><a href="/users/commission">Hoa hồng của tôi</a><% } %>
         <% if (currentUser.role === 'admin') { %><a href="/inventory/closing">Chốt ngày</a><a href="/revenue">Doanh thu</a><a href="/users">Nhân viên</a><a href="/configuration">Cấu hình</a><a href="/guide">Hướng dẫn</a><% } %>
       </nav>
       <div class="account"><span><%= currentUser.username %> · <%= currentUser.role === 'admin' ? 'Quản trị' : 'Nhân viên' %></span><form method="post" action="/auth/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button">Đăng xuất</button></form></div>

@@ -36,7 +36,7 @@ async function remove(id, actorId) {
   if (String(id) === String(actorId)) throw new AppError("Không thể tự xóa tài khoản đang đăng nhập.");
   const user = await User.findById(id);
   if (!user) throw new AppError("Không tìm thấy nhân viên.", 404);
-  if (user.orders.length || user.payroll.length || await Movement.exists({ createdBy: id })) throw new AppError("Tài khoản đã có lịch sử đơn hàng, lương hoặc kho; hãy khóa tài khoản thay vì xóa.");
+  if (user.orders.length || user.payroll.length || user.commissions.length || await Movement.exists({ createdBy: id })) throw new AppError("Tài khoản đã có lịch sử đơn hàng, lương hoặc kho; hãy khóa tài khoản thay vì xóa.");
   await user.deleteOne();
 }
 async function addOrder(id, body) {

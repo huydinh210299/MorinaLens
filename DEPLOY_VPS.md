@@ -341,7 +341,7 @@ Với bản cài apt, xác nhận timer gia hạn đang hoạt động; cách c�
 Mở [https://lens.morina.click](https://lens.morina.click), đăng nhập bằng tài khoản đã cấu hình. Cookie production của Lens yêu cầu HTTPS.
 
 - Seed tạo admin nếu chưa tồn tại, mật khẩu được hash. Sửa `ADMIN_PASSWORD` trong secret không tự đổi mật khẩu admin đã tồn tại.
-- Kiểm tra cấu hình Shopee, đơn giá lương và quyền staff. Điền đủ cấu hình TikTok trước khi xuất bán.
+- Kiểm tra cấu hình Shopee, tỷ lệ hoa hồng và quyền staff. Điền đủ cấu hình TikTok trước khi xuất bán.
 - Seed/migration có thể bổ sung dữ liệu hoặc chuyển đổi cấu hình theo phiên bản. Sao lưu database trước nâng cấp có thay đổi dữ liệu; seed không phải tác vụ chỉ đọc.
 - Thử nghiệp vụ kho/lương trên production sẽ ghi dữ liệu thật; dùng dữ liệu thử có kiểm soát.
 - Kiểm tra cả hai app và lưu danh sách PM2:

@@ -26,12 +26,21 @@ const payrollSchema = new mongoose.Schema({
   payments: { type: [payrollPaymentSchema], default: [] },
   note: { type: String, default: "" }
 }, { timestamps: true });
+const commissionSchema = new mongoose.Schema({
+  month: { type: String, required: true, match: /^\d{4}-(0[1-9]|1[0-2])$/ },
+  revenue: { type: Number, required: true, min: 0 },
+  percent: { type: Number, required: true, min: 0, max: 100 },
+  amount: { type: Number, required: true, min: 0 },
+  closedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  closedAt: { type: Date, required: true }
+}, { timestamps: true });
 const schema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, trim: true },
   password: { type: String, required: true, select: false },
   role: { type: String, enum: ["admin", "staff"], default: "staff" },
   active: { type: Boolean, default: true },
   orders: { type: [orderSchema], default: [] },
-  payroll: { type: [payrollSchema], default: [] }
+  payroll: { type: [payrollSchema], default: [] },
+  commissions: { type: [commissionSchema], default: [] }
 }, { timestamps: true });
 module.exports = mongoose.model("User", schema);

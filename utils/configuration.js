@@ -11,6 +11,8 @@ const defaults = [
   ["shopVoucher", "Voucher shop", 0, "vnd"]
 ];
 const keys = Object.fromEntries(defaults.map(([key, label, value, unit]) => [key, { label, unit, defaultValue: value }]));
-const systemDefaults = [["ratePerOrder", "Đơn giá mỗi đơn", 1500, "vnd"]];
+const systemDefaults = [["commissionPercent", "Hoa hồng nhân viên theo doanh thu", 1, "percent"]];
 const systemKeys = Object.fromEntries(systemDefaults.map(([key, label, value, unit]) => [key, { label, unit, defaultValue: value }]));
+// Retain the legacy fallback for historical payroll, outside the active configuration UI.
+systemKeys.ratePerOrder = { label: "Đơn giá mỗi đơn (cũ)", unit: "vnd", defaultValue: 1500, retired: true };
 module.exports = { defaults, keys, systemDefaults, systemKeys };
