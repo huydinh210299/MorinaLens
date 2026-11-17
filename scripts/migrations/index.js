@@ -9,4 +9,5 @@ module.exports = [{
     const { products, ...summary } = await migrate({ apply: true });
     return summary;
   }
-}, require("./enable-bear-lens-shopee-ads"), require("./import-dreammoon")];
+}, require("./enable-bear-lens-shopee-ads"), require("./import-dreammoon"),
+require("./update-dreammoon-quantities")];

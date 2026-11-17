@@ -56,6 +56,17 @@ npm run migrate:dreammoon -- --apply      # Nhập các SKU còn thiếu
 
 Migration được đăng ký trong bộ chạy chung nên tự chạy khi `npm run dev` hoặc `npm run build`. Chỉ tạo SKU chưa tồn tại, không sửa dữ liệu sản phẩm có sẵn hoặc cộng lại tồn kho. Số lượng là tồn đầu kỳ, không tạo phiếu nhập kho. Nếu lỗi giữa chừng, chạy lại sẽ tạo tiếp SKU còn thiếu; khi đã `completed`, những lần sau bỏ qua toàn bộ migration.
 
+### Cập nhật tồn Dreammoon ngày 17/11/2026
+
+Migration `20261117_001_dreammoon_quantities` đặt tồn kho **bằng** số lượng kiểm kê trong `scripts/data/dreammoon-quantities-20261117.json`: **13 SKU, tổng 32 lọ**. `Gray luis` dùng SKU hiện có `DREAMMOON_GRAY_LOUIS`; `Grey Beige` là SKU mới `DREAMMOON_GRAY_BEIGE`, tồn 1, giá nhập 25.000đ, giá Shopee 73.000đ, TikTok để trống và bật Ads Shopee theo cấu hình sàn.
+
+```bash
+npm run migrate:dreammoon-quantities            # Xem trước, không ghi database
+npm run migrate:dreammoon-quantities -- --apply # Đặt tồn và thêm Gray Beige
+```
+
+Chỉ số lượng tồn và thời điểm cập nhật của SKU hiện có được thay đổi; giữ giá, Ads, tên và lịch sử kho, không tạo phiếu điều chỉnh. Nếu thiếu SKU cũ thì dừng trước khi ghi; chạy bộ migration chung để nhập Dreammoon trước. Kết quả migration lưu cả số lượng trước/sau. Migration được thêm cuối bộ chạy chung, tự chạy khi dev/build và bỏ qua khi đã `completed`, nên không đặt lại tồn của các lần bán sau. Khi áp dụng lần đầu hoặc thử lại sau lỗi, thực hiện trong lúc tạm ngưng thao tác kho vì MongoDB standalone có thể đã ghi một phần trước lỗi.
+
 ### Lịch sử migration
 
 Collection MongoDB **`migrations`** lưu mỗi script theo `_id` cố định, mô tả, trạng thái (`running`, `completed`, `failed`), thời điểm bắt đầu/hoàn tất, kết quả và lỗi. Bear lens có ID `20261111_001_bear_lens`. Cả lệnh riêng ở trên và bộ chạy chung đều kiểm tra collection này: `completed` thì bỏ qua toàn bộ script; chưa có thì chạy và chỉ đánh dấu hoàn tất sau khi thành công. Migration lỗi được ghi `failed` để lần chạy sau thử lại. Nếu trước đó đã nhập Bear lens bằng script cũ, lần đầu bộ chạy mới sẽ bỏ qua các SKU có sẵn và ghi nhận migration hoàn tất.

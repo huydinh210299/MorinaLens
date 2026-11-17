@@ -160,7 +160,13 @@ test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng
   }
   t.mock.method(Product, "createIndexes", async () => {});
   const find = t.mock.method(Product, "find", () => ({ select: () => ({ lean: async () => [...products.values()] }) }));
-  t.mock.method(Product, "updateOne", async ({ sku }, { $setOnInsert }) => {
+  t.mock.method(Product, "updateOne", async ({ sku, quantity }, { $setOnInsert, $set }) => {
+    if ($set) {
+      const product = products.get(sku);
+      if (!product || product.quantity !== quantity) return { matchedCount: 0 };
+      Object.assign(product, structuredClone($set));
+      return { matchedCount: 1, modifiedCount: 1 };
+    }
     if (products.has(sku)) return { upsertedCount: 0 };
     products.set(sku, structuredClone($setOnInsert));
     return { upsertedCount: 1 };
@@ -187,19 +193,29 @@ test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng
   assert.equal(first[2].result.created, 12);
   assert.equal(first[2].result.totalQuantity, 64);
   assert.equal(first[2].result.products, undefined);
-  assert.equal(products.size, 55);
+  assert.equal(first[3].id, "20261117_001_dreammoon_quantities");
+  assert.equal(first[3].status, "completed");
+  assert.equal(first[3].result.updated, 12);
+  assert.equal(first[3].result.created, 1);
+  assert.equal(first[3].result.totalQuantity, 32);
+  assert.equal(products.size, 56);
+  assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 6);
+  assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 1);
   assert.equal(products.get("DREAMMOON_PINK_SUMMER").purchasePrice, 25000);
   assert.equal(products.get("DREAMMOON_PINK_SUMMER").shopeePrice, 73000);
   assert.ok([...products.values()].every((product) => product.ads.shopee.enabled));
   // Tồn đã bán không bị nhập lại trong build sau.
   products.get("BEAR_AMBER_BROWN").quantity = 0;
   products.get("DREAMMOON_CHOCO_NATURE").quantity = 3;
+  products.get("DREAMMOON_GRAY_BEIGE").quantity = 0;
   const second = await main(["--apply"]);
   assert.equal(second[0].status, "skipped");
   assert.equal(second[1].status, "skipped");
   assert.equal(second[2].status, "skipped");
-  assert.equal(find.mock.callCount(), 2);
+  assert.equal(second[3].status, "skipped");
+  assert.equal(find.mock.callCount(), 3);
   assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 3);
+  assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 0);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
   assert.equal(db.documents.get("20261111_001_bear_lens").status, "completed");
   // Mô phỏng local/VPS chỉ đã hoàn tất bước nhập ở phiên bản trước.
@@ -212,10 +228,12 @@ test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng
   assert.equal(upgrade[1].status, "completed");
   assert.equal(upgrade[1].result.updated, 43);
   assert.equal(upgrade[2].status, "skipped");
-  assert.equal(find.mock.callCount(), 2);
+  assert.equal(upgrade[3].status, "skipped");
+  assert.equal(find.mock.callCount(), 3);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
   assert.ok([...products.values()].every((product) => product.ads.shopee.enabled));
   const output = logs.mock.calls.map((call) => call.arguments[0]).filter((line) => line.startsWith("{"));
   assert.deepEqual(output.map((line) => JSON.parse(line).status),
-    ["completed", "completed", "completed", "skipped", "skipped", "skipped", "skipped", "completed", "skipped"]);
+    ["completed", "completed", "completed", "completed", "skipped", "skipped", "skipped", "skipped",
+      "skipped", "completed", "skipped", "skipped"]);
 });
