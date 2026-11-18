@@ -1,0 +1,6 @@
+[
+  { "sku": "DUNG_CU_HO_TRO_DEO_LENS", "name": "Dụng cụ hỗ trợ đeo lens", "quantity": 9, "purchasePrice": 5500, "shopeePrice": 25000 },
+  { "sku": "NUOC_NGAM", "name": "Nước ngâm", "quantity": 62, "purchasePrice": 23000, "shopeePrice": 62000 },
+  { "sku": "NHO_MAT", "name": "Nhỏ mắt", "quantity": 65, "purchasePrice": 24000, "shopeePrice": 65000 },
+  { "sku": "KHAY_DUNG_LENS", "name": "Khay đựng lens", "quantity": 83, "purchasePrice": 3200, "shopeePrice": 15000 }
+]

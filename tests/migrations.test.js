@@ -138,7 +138,7 @@ test("từ chối ID trùng trước khi chạy bất cứ migration nào", asyn
   assert.equal(db.calls.writes, 0);
 });
 
-test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng lịch sử", async (t) => {
+test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lần sau qua cùng lịch sử", async (t) => {
   const mongoose = require("mongoose");
   const Product = require("../models/Product");
   const { main } = require("../scripts/migrate");
@@ -198,12 +198,23 @@ test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng
   assert.equal(first[3].result.updated, 12);
   assert.equal(first[3].result.created, 1);
   assert.equal(first[3].result.totalQuantity, 32);
-  assert.equal(products.size, 56);
+  assert.equal(first[4].id, "20261118_001_lens_accessories");
+  assert.equal(first[4].status, "completed");
+  assert.equal(first[4].result.created, 4);
+  assert.equal(first[4].result.totalQuantity, 219);
+  assert.equal(products.size, 60);
   assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 6);
   assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 1);
   assert.equal(products.get("DREAMMOON_PINK_SUMMER").purchasePrice, 25000);
   assert.equal(products.get("DREAMMOON_PINK_SUMMER").shopeePrice, 73000);
-  assert.ok([...products.values()].every((product) => product.ads.shopee.enabled));
+  const checkAds = () => {
+    for (const product of products.values()) {
+      const isLens = /^(BEAR_|DREAMMOON_)/.test(product.sku);
+      assert.equal(product.ads.shopee.enabled, isLens);
+      assert.equal(product.ads.tiktok.enabled, false);
+    }
+  };
+  checkAds();
   // Tồn đã bán không bị nhập lại trong build sau.
   products.get("BEAR_AMBER_BROWN").quantity = 0;
   products.get("DREAMMOON_CHOCO_NATURE").quantity = 3;
@@ -213,7 +224,8 @@ test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng
   assert.equal(second[1].status, "skipped");
   assert.equal(second[2].status, "skipped");
   assert.equal(second[3].status, "skipped");
-  assert.equal(find.mock.callCount(), 3);
+  assert.equal(second[4].status, "skipped");
+  assert.equal(find.mock.callCount(), 4);
   assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 3);
   assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 0);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
@@ -229,11 +241,13 @@ test("lệnh build chạy Bear lens và Dreammoon, skip các lần sau qua cùng
   assert.equal(upgrade[1].result.updated, 43);
   assert.equal(upgrade[2].status, "skipped");
   assert.equal(upgrade[3].status, "skipped");
-  assert.equal(find.mock.callCount(), 3);
+  assert.equal(upgrade[4].status, "skipped");
+  assert.equal(find.mock.callCount(), 4);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
-  assert.ok([...products.values()].every((product) => product.ads.shopee.enabled));
+  checkAds();
   const output = logs.mock.calls.map((call) => call.arguments[0]).filter((line) => line.startsWith("{"));
   assert.deepEqual(output.map((line) => JSON.parse(line).status),
-    ["completed", "completed", "completed", "completed", "skipped", "skipped", "skipped", "skipped",
-      "skipped", "completed", "skipped", "skipped"]);
+    ["completed", "completed", "completed", "completed", "completed",
+      "skipped", "skipped", "skipped", "skipped", "skipped",
+      "skipped", "completed", "skipped", "skipped", "skipped"]);
 });

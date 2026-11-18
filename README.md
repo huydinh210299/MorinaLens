@@ -67,6 +67,26 @@ npm run migrate:dreammoon-quantities -- --apply # Đặt tồn và thêm Gray Be
 
 Chỉ số lượng tồn và thời điểm cập nhật của SKU hiện có được thay đổi; giữ giá, Ads, tên và lịch sử kho, không tạo phiếu điều chỉnh. Nếu thiếu SKU cũ thì dừng trước khi ghi; chạy bộ migration chung để nhập Dreammoon trước. Kết quả migration lưu cả số lượng trước/sau. Migration được thêm cuối bộ chạy chung, tự chạy khi dev/build và bỏ qua khi đã `completed`, nên không đặt lại tồn của các lần bán sau. Khi áp dụng lần đầu hoặc thử lại sau lỗi, thực hiện trong lúc tạm ngưng thao tác kho vì MongoDB standalone có thể đã ghi một phần trước lỗi.
 
+## Nhập sản phẩm phụ trợ lens ngày 18/11/2026
+
+Migration `20261118_001_lens_accessories` nhập 4 SKU từ `scripts/data/lens-accessories-20261118.json`, tổng tồn đầu kỳ **219 sản phẩm**:
+
+| SKU | Tên | Tồn đầu kỳ | Giá nhập | Giá Shopee |
+| --- | --- | ---: | ---: | ---: |
+| DUNG_CU_HO_TRO_DEO_LENS | Dụng cụ hỗ trợ đeo lens | 9 | 5.500đ | 25.000đ |
+| NUOC_NGAM | Nước ngâm | 62 | 23.000đ | 62.000đ |
+| NHO_MAT | Nhỏ mắt | 65 | 24.000đ | 65.000đ |
+| KHAY_DUNG_LENS | Khay đựng lens | 83 | 3.200đ | 15.000đ |
+
+Sản phẩm mới **tắt Ads trên cả Shopee và TikTok**, tỷ lệ riêng để trống; giá TikTok để trống. Chỉ tạo SKU còn thiếu, không đổi sản phẩm đã tồn tại, không cộng lại tồn khi chạy lại và không tạo phiếu nhập kho.
+
+```bash
+npm run migrate:lens-accessories             # Xem trước, không ghi database
+npm run migrate:lens-accessories -- --apply  # Nhập sản phẩm và lưu lịch sử migration
+```
+
+Lệnh riêng chỉ chạy migration này. Migration cũng được đăng ký cuối bộ chạy chung, nên `npm run dev` hoặc `npm run build` sẽ tự áp dụng nếu chưa hoàn tất.
+
 ### Lịch sử migration
 
 Collection MongoDB **`migrations`** lưu mỗi script theo `_id` cố định, mô tả, trạng thái (`running`, `completed`, `failed`), thời điểm bắt đầu/hoàn tất, kết quả và lỗi. Bear lens có ID `20261111_001_bear_lens`. Cả lệnh riêng ở trên và bộ chạy chung đều kiểm tra collection này: `completed` thì bỏ qua toàn bộ script; chưa có thì chạy và chỉ đánh dấu hoàn tất sau khi thành công. Migration lỗi được ghi `failed` để lần chạy sau thử lại. Nếu trước đó đã nhập Bear lens bằng script cũ, lần đầu bộ chạy mới sẽ bỏ qua các SKU có sẵn và ghi nhận migration hoàn tất.
