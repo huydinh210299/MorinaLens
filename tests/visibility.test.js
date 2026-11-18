@@ -14,14 +14,14 @@ const view = (name, locals) => ejs.renderFile(path.join(__dirname, "..", "views"
   ...locals
 });
 
-test("trang sản phẩm staff chỉ hiện SKU, tên, tồn và hai giá bán", async () => {
+test("trang sản phẩm staff chỉ hiện SKU, tên, tồn và giá Shopee", async () => {
   const html = await view("products/index.ejs", {
     q: "", items: [{ _id: "product-id", sku: "LENS-01", name: "Lens demo", quantity: 4,
       shopeePrice: 75000, tiktokPrice: 80000, purchasePrice: 1234567,
       note: "SECRET_NOTE", pricing: { shopee: { profit: 999999 }, tiktok: null } }]
   });
-  for (const visible of ["LENS-01", "Lens demo", "75000 đ", "80000 đ", "Giá Shopee", "Giá TikTok"]) assert.match(html, new RegExp(visible));
-  for (const hidden of ["Cấu hình giá", "Giá nhập", "Lợi nhuận", "Điểm hòa vốn", "1234567", "SECRET_NOTE", "999999", "Ads:", "Tạo / Cập nhật"]) {
+  for (const visible of ["LENS-01", "Lens demo", "75000 đ", "Giá Shopee"]) assert.match(html, new RegExp(visible));
+  for (const hidden of ["Cấu hình giá", "Giá nhập", "Lợi nhuận", "Điểm hòa vốn", "1234567", "SECRET_NOTE", "999999", "Ads:", "Tạo / Cập nhật", "Giá TikTok", "80000 đ"]) {
     assert.ok(!html.includes(hidden), `Không được hiển thị ${hidden}`);
   }
 });

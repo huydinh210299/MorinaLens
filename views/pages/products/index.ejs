@@ -8,15 +8,14 @@
 </section><% } %>
 <section class="panel"><% if (isAdmin) { %><p class="muted">“Điểm hòa vốn” theo file Excel là tổng chi phí tại giá bán đang nhập. Ads tính trên thực nhận ước tính sau phí sàn và thuế; tắt Ads thì chi phí bằng 0. Voucher shop là số tiền giảm cho mỗi sản phẩm trong phép ước tính. Các chỉ số này để tham khảo tính giá; báo cáo dùng tiền quảng cáo thực tế khi chốt ngày.</p><% } %>
   <form class="filter" method="get"><label>Tìm kiếm<input name="q" value="<%= q %>" placeholder="SKU hoặc tên sản phẩm"></label><button class="button secondary">Tìm kiếm</button></form>
-  <div class="table-wrap"><table class="<%= isAdmin ? 'product-table' : '' %>"><thead><tr><th>SKU / Tên</th><th>Tồn</th><% if (isAdmin) { %><th>Giá nhập</th><% } %><th>Giá Shopee</th><th>Giá TikTok</th><% if (isAdmin) { %><th>Tạo / Cập nhật</th><th>Thao tác</th><% } %></tr></thead><tbody>
+  <div class="table-wrap"><table class="<%= isAdmin ? 'product-table' : '' %>"><thead><tr><th>SKU / Tên</th><th>Tồn</th><% if (isAdmin) { %><th>Giá nhập</th><% } %><th>Giá Shopee</th><% if (isAdmin) { %><th>Thao tác</th><% } %></tr></thead><tbody>
     <% for (const item of items) { %><tr>
       <td><strong><%= item.sku %></strong><br><%= item.name %><% if (isAdmin && item.note) { %><br><small class="muted"><%= item.note %></small><% } %></td>
       <td><%= item.quantity %></td><% if (isAdmin) { %><td><%= money(item.purchasePrice) %></td><% } %>
       <td><% if (isAdmin) { %><%- include('../../partials/platform-price', { item, platform: 'shopee', config: shopee }) %><% } else { %><%= item.shopeePrice == null ? 'Chưa đặt giá' : money(item.shopeePrice) %><% } %></td>
-      <td><% if (isAdmin) { %><%- include('../../partials/platform-price', { item, platform: 'tiktok', config: tiktok }) %><% } else { %><%= item.tiktokPrice == null ? 'Chưa đặt giá' : money(item.tiktokPrice) %><% } %></td>
-      <% if (isAdmin) { %><td><small>Tạo: <%= dateTime(item.createdAt) %><br>Cập nhật: <%= dateTime(item.updatedAt) %></small></td><td class="actions-cell"><a href="/products/<%= item._id %>/edit">Chỉnh sửa</a><a href="/products/<%= item._id %>/clone">Nhân bản</a><form method="post" action="/products/<%= item._id %>?_method=DELETE" data-confirm="Xóa sản phẩm này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form></td><% } %>
+      <% if (isAdmin) { %><td class="actions-cell"><a href="/products/<%= item._id %>/edit">Chỉnh sửa</a><a href="/products/<%= item._id %>/clone">Nhân bản</a><form method="post" action="/products/<%= item._id %>?_method=DELETE" data-confirm="Xóa sản phẩm này?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form></td><% } %>
     </tr><% } %>
-    <% if (!items.length) { %><tr><td colspan="<%= isAdmin ? 7 : 4 %>" class="empty">Không có dữ liệu</td></tr><% } %>
+    <% if (!items.length) { %><tr><td colspan="<%= isAdmin ? 5 : 3 %>" class="empty">Không có dữ liệu</td></tr><% } %>
   </tbody></table></div>
   <%- include('../../partials/pagination', { base: '/products', page, total, limit, query: q ? 'q=' + encodeURIComponent(q) : '' }) %>
 </section>
