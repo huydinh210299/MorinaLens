@@ -27,22 +27,24 @@
     <% } %>
   <% } %>
 </section>
-<section class="panel">
+<section class="panel" id="commission-history">
   <h2>Lịch sử chốt hoa hồng</h2>
   <div class="table-wrap"><table><thead><tr><th>Tháng</th><th>Doanh thu</th><th>Tỷ lệ</th><th>Hoa hồng đã chốt</th><th>Người chốt</th><th>Thời điểm</th></tr></thead><tbody>
-    <% for (const row of [...(item.commissions || [])].sort((a,b) => b.month.localeCompare(a.month))) { %>
+    <% for (const row of commissionHistory.items) { %>
       <tr><td><a href="?month=<%= row.month %>"><%= row.month %></a></td><td><%= money(row.revenue) %></td><td><%= row.percent %>%</td><td><%= money(row.amount) %></td><td><%= row.closedBy?.username || 'Admin' %></td><td><%= dateTime(row.closedAt) %></td></tr>
     <% } %>
-    <% if (!item.commissions?.length) { %><tr><td colspan="6" class="empty">Chưa có tháng đã chốt.</td></tr><% } %>
+    <% if (!commissionHistory.items.length) { %><tr><td colspan="6" class="empty">Chưa có tháng đã chốt.</td></tr><% } %>
   </tbody></table></div>
+  <%- include('../../partials/pagination', { ...commissionHistory, base: historyBase, query: 'month=' + month + '&payrollPage=' + payrollHistory.page, pageParam: 'commissionPage', anchor: 'commission-history' }) %>
 </section>
 <% if (!own && item.payroll?.length) { %>
-<section class="panel"><details><summary>Lịch sử lương trước khi chuyển sang hoa hồng</summary>
+<section class="panel" id="payroll-history"><details <%= payrollHistory.page > 1 ? 'open' : '' %>><summary>Lịch sử lương trước khi chuyển sang hoa hồng</summary>
   <p class="muted">Dữ liệu cũ được giữ nguyên và không cộng vào hoa hồng theo doanh thu.</p>
   <div class="table-wrap"><table><thead><tr><th>Tháng</th><th>Lương cũ</th><th>Đã thanh toán</th><th>Lịch sử thanh toán</th></tr></thead><tbody>
-    <% for (const row of [...item.payroll].sort((a,b) => b.month.localeCompare(a.month))) { %>
+    <% for (const row of payrollHistory.items) { %>
       <tr><td><%= row.month %></td><td><%= money(row.amount) %></td><td><%= money(row.paidTotal) %></td><td><% for (const payment of row.payments || []) { %><div><%= money(payment.amount) %> · <%= dateTime(payment.paidAt) %> · <%= payment.paidBy?.username || 'Admin' %></div><% } %><% if (row.note) { %><small><%= row.note %></small><% } %></td></tr>
     <% } %>
   </tbody></table></div>
+  <%- include('../../partials/pagination', { ...payrollHistory, base: historyBase, query: 'month=' + month + '&commissionPage=' + commissionHistory.page, pageParam: 'payrollPage', anchor: 'payroll-history' }) %>
 </details></section>
 <% } %>

@@ -143,14 +143,16 @@ test("giao diện ẩn chấm công/số đơn, chỉ admin có nút chốt và 
   const { user, movements } = fixture(t);
   const commission = service.summarize(user, month, movements, 1);
   const locals = { item: user, month, commission, own: false, money: String, dateTime: String,
-    csrfToken: "test", dateInput: () => "2020-01-31" };
+    csrfToken: "test", dateInput: () => "2020-01-31", historyBase: "/users/" + user._id,
+    commissionHistory: require("../utils/pagination").paginateRows(user.commissions || []),
+    payrollHistory: require("../utils/pagination").paginateRows(user.payroll || []) };
   const file = path.join(__dirname, "../views/pages/users/detail.ejs");
   const admin = await ejs.renderFile(file, locals);
   assert.match(admin, /Chốt hoa hồng tháng 2020-01/);
   assert.match(admin, /name="reviewVersion"/);
   assert.ok(!admin.includes("Chấm công"));
   assert.ok(!admin.includes("Số đơn"));
-  const staff = await ejs.renderFile(file, { ...locals, own: true });
+  const staff = await ejs.renderFile(file, { ...locals, own: true, historyBase: "/users/commission" });
   assert.ok(!staff.includes("/commission/close"));
   const index = await ejs.renderFile(path.join(__dirname, "../views/pages/users/index.ejs"), {
     ...locals, items: [{ ...user, commission }], page: 1, total: 1, limit: 20
@@ -168,7 +170,7 @@ test("giao diện ẩn chấm công/số đơn, chỉ admin có nút chốt và 
   const closed = { month, revenue: 150246.9, percent: 1, amount: 1502,
     closedBy: { username: "<script>bad</script>" }, closedAt: new Date() };
   const history = await ejs.renderFile(file, { ...locals, item: { ...user, commissions: [closed] },
-    commission: { ...closed, closed: true } });
+    commission: { ...closed, closed: true }, commissionHistory: require("../utils/pagination").paginateRows([closed]) });
   assert.match(history, /Đã chốt/);
   assert.ok(!history.includes("/commission/close"));
   assert.ok(!history.includes("<script>bad</script>"));

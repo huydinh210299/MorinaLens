@@ -1,12 +1,13 @@
 const User = require("../models/User");
 const service = require("../services/userService");
 const commission = require("../services/commissionService");
-const { page } = require("../utils/input");
+const { paginate, paginateRows } = require("../utils/pagination");
 const AppError = require("../utils/errors");
 
 async function index(req, res) {
-  const currentPage = page(req.query.page), limit = 20;
-  const [items, total] = await Promise.all([User.find().sort({ username: 1 }).skip((currentPage - 1) * limit).limit(limit).lean(), User.countDocuments()]);
+  const total = await User.countDocuments();
+  const { page: currentPage, limit, skip } = paginate(total, req.query.page);
+  const items = await User.find().sort({ username: 1, _id: 1 }).skip(skip).limit(limit).lean();
   const month = commission.selectedMonth(req.query.month);
   res.render("pages/users/index", { title: "Nhân viên", items: await commission.monthly(items, month), month, total, page: currentPage, limit });
 }
@@ -21,14 +22,20 @@ async function detail(req, res) {
   item.payroll = item.payroll.map((row) => ({ ...row, paidTotal: service.paidTotal(row) }));
   const month = commission.selectedMonth(req.query.month);
   const [{ commission: monthlyCommission }] = await commission.monthly([item], month);
-  res.render("pages/users/detail", { title: `Nhân viên ${item.username}`, item, month, commission: monthlyCommission, own: false });
+  res.render("pages/users/detail", { title: `Nhân viên ${item.username}`, item, month, commission: monthlyCommission, own: false, ...historyPages(item, req.query, false) });
 }
 async function ownCommission(req, res) {
   const item = await User.findById(req.user._id).populate("commissions.closedBy", "username").lean();
   if (!item) throw new AppError("Không tìm thấy nhân viên.", 404);
   const month = commission.selectedMonth(req.query.month);
   const [{ commission: monthlyCommission }] = await commission.monthly([item], month);
-  res.render("pages/users/detail", { title: "Hoa hồng của tôi", item, month, commission: monthlyCommission, own: true });
+  res.render("pages/users/detail", { title: "Hoa hồng của tôi", item, month, commission: monthlyCommission, own: true, ...historyPages(item, req.query, true) });
+}
+function historyPages(item, query, own) {
+  const newestFirst = (rows) => [...(rows || [])].sort((a, b) => b.month.localeCompare(a.month));
+  return { historyBase: own ? "/users/commission" : `/users/${item._id}`,
+    commissionHistory: paginateRows(newestFirst(item.commissions), query.commissionPage),
+    payrollHistory: paginateRows(own ? [] : newestFirst(item.payroll), query.payrollPage) };
 }
 async function closeCommission(req, res) {
   const snapshot = await commission.close(req.params.id, req.body, req.user);

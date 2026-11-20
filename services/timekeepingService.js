@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const input = require("../utils/input");
+const { paginateRows: paginate } = require("../utils/pagination");
 const AppError = require("../utils/errors");
 const { countOrders, getDefaultOrderRate, recalculatePayroll, paidTotal } = require("./userService");
 
@@ -77,11 +78,6 @@ async function review(userId, entryId, actor, approve) {
   });
 }
 function selectedMonth(value) { return input.month(value || today().slice(0, 7)); }
-function paginate(rows, requestedPage) {
-  const limit = 20, total = rows.length;
-  const page = Math.min(input.page(requestedPage), Math.max(1, Math.ceil(total / limit)));
-  return { items: rows.slice((page - 1) * limit, page * limit), total, page, limit };
-}
 async function ownData(userId, query) {
   const month = selectedMonth(query.month);
   const [user, defaultOrderRate] = await Promise.all([

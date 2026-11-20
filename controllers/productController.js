@@ -1,18 +1,19 @@
 const Product = require("../models/Product");
 const service = require("../services/productService");
 const pricing = require("../services/pricingService");
-const { page } = require("../utils/input");
+const { paginate } = require("../utils/pagination");
 const AppError = require("../utils/errors");
 const { keys } = require("../utils/configuration");
 
 async function index(req, res) {
   const q = String(req.query.q || "").trim().slice(0, 100);
   const filter = q ? { $or: [{ sku: { $regex: escapeRegex(q), $options: "i" } }, { name: { $regex: escapeRegex(q), $options: "i" } }] } : {};
-  const currentPage = page(req.query.page), limit = 20;
+  const total = await Product.countDocuments(filter);
+  const { page: currentPage, limit, skip } = paginate(total, req.query.page);
   const isAdmin = req.user.role === "admin";
-  const query = Product.find(filter).sort({ updatedAt: -1 }).skip((currentPage - 1) * limit).limit(limit);
+  const query = Product.find(filter).sort({ updatedAt: -1, _id: -1 }).skip(skip).limit(limit);
   if (!isAdmin) query.select("sku name quantity shopeePrice tiktokPrice");
-  const [items, total] = await Promise.all([query.lean(), Product.countDocuments(filter)]);
+  const items = await query.lean();
   if (!isAdmin) {
     return res.render("pages/products/index", { title: "Sản phẩm", items, total, page: currentPage, limit, q });
   }

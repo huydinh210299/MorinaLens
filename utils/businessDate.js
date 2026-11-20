@@ -1,4 +1,5 @@
 const AppError = require("./errors");
+const input = require("./input");
 
 function today(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Bangkok" }).format(now);
@@ -15,4 +16,11 @@ function dayRange(day) {
   const start = parseDay(day);
   return { $gte: start, $lt: new Date(start.getTime() + 86400000) };
 }
-module.exports = { today, parseDay, dayRange };
+function monthRange(month) {
+  input.month(month);
+  const start = new Date(`${month}-01T00:00:00.000Z`);
+  const end = new Date(start);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  return { $gte: start, $lt: end };
+}
+module.exports = { today, parseDay, dayRange, monthRange };

@@ -1,5 +1,6 @@
 const input = require("../utils/input");
 const revenueService = require("../services/revenueService");
+const { paginateRows } = require("../utils/pagination");
 
 function currentMonthBangkok() {
   const parts = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "2-digit", timeZone: "Asia/Bangkok" }).formatToParts(new Date());
@@ -9,6 +10,6 @@ function currentMonthBangkok() {
 async function index(req, res) {
   const month = input.month(req.query.month || currentMonthBangkok());
   const report = await revenueService.getMonthlyReport(month);
-  res.render("pages/revenue/index", { title: "Doanh thu và lợi nhuận", month, report });
+  res.render("pages/revenue/index", { title: "Doanh thu và lợi nhuận", month, report, dailyPage: paginateRows(report.byDay, req.query.page) });
 }
 module.exports = { index };

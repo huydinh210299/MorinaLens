@@ -1,15 +1,33 @@
+<% const isAdmin = currentUser.role === 'admin'; const filterQuery = [date ? 'date=' + date : '', type ? 'type=' + type : '', platform ? 'platform=' + platform : '', status ? 'status=' + status : ''].filter(Boolean).join('&'); %>
 <div class="page-head">
-  <div><p class="eyebrow">Kho hàng</p><h1>Nhập, xuất, hoàn hàng</h1><p class="muted">Mỗi phiếu có thể chứa nhiều SKU. Nhập và hoàn cộng tồn; xuất trừ tồn.</p></div>
-  <div class="actions"><% if (currentUser.role === 'admin') { %><a class="button secondary" href="/inventory/closing">Chốt ngày và Ads</a><% } %><a class="button" href="/inventory/new">Tạo phiếu kho</a></div>
+  <div><p class="eyebrow">Kho hàng</p><h1>Kho hàng</h1><p class="muted">Tạo, xem và theo dõi phiếu nhập, xuất, hoàn hàng<%= isAdmin ? '; duyệt phiếu ngay tại đây' : '' %>.</p></div>
+  <div class="actions"><% if (isAdmin) { %><a class="button secondary" href="/inventory/ads<%= date ? '?month=' + date.slice(0, 7) : '' %>">Chốt Ads theo tháng</a><% } %><a class="button" href="/inventory/new">Tạo phiếu kho</a></div>
 </div>
 <section class="panel">
-  <p class="muted">Mọi phiếu nhập, xuất và hoàn của admin hoặc nhân viên đều chờ duyệt. Tồn kho cập nhật ngay; quản trị viên chốt cuối ngày và nhập tiền quảng cáo thực tế. Phiếu kho không tự cộng công.</p>
+  <p class="muted">Mọi phiếu nhập, xuất và hoàn của admin hoặc nhân viên đều chờ duyệt. Tồn kho cập nhật ngay; quản trị viên duyệt phiếu kho và chốt tiền quảng cáo theo tháng. Phiếu kho không tự cộng công.</p>
   <form method="get" class="filter">
+    <label>Ngày (không bắt buộc)<input type="date" name="date" max="<%= today %>" value="<%= date %>"></label>
     <label>Loại phiếu<select name="type"><option value="">Tất cả</option><option value="import" <%= type === 'import' ? 'selected' : '' %>>Nhập</option><option value="export" <%= type === 'export' ? 'selected' : '' %>>Xuất</option><option value="return" <%= type === 'return' ? 'selected' : '' %>>Hoàn hàng</option></select></label>
     <label>Sàn<select name="platform"><option value="">Cả hai sàn</option><option value="shopee" <%= platform === 'shopee' ? 'selected' : '' %>>Shopee</option><option value="tiktok" <%= platform === 'tiktok' ? 'selected' : '' %>>TikTok</option></select></label>
-    <label>Duyệt<select name="status"><option value="">Tất cả</option><option value="pending" <%= status === 'pending' ? 'selected' : '' %>>Chờ duyệt</option><option value="approved" <%= status === 'approved' ? 'selected' : '' %>>Đã duyệt</option></select></label>
+    <label>Trạng thái duyệt<select name="status"><option value="" <%= status === '' ? 'selected' : '' %>>Tất cả</option><option value="pending" <%= status === 'pending' ? 'selected' : '' %>>Chờ duyệt</option><option value="approved" <%= status === 'approved' ? 'selected' : '' %>>Đã duyệt</option></select></label>
     <button class="button secondary">Lọc</button>
+    <a class="button secondary" href="/inventory">Xem tất cả</a>
   </form>
+  <p class="muted">Đang xem <%= total %> phiếu · <%= { '': 'Tất cả trạng thái', pending: 'Chờ duyệt', approved: 'Đã duyệt' }[status] %> · <%= date ? 'Ngày ' + date.split('-').reverse().join('/') : 'Tất cả các ngày' %>.</p>
+</section>
+<div class="stats"><div class="stat"><strong><%= total %></strong><span>Phiếu trong danh sách</span></div><div class="stat"><strong><%= pendingCount %></strong><span>Phiếu chờ duyệt</span></div><div class="stat"><strong><%= approvedCount %></strong><span>Phiếu đã duyệt</span></div></div>
+<% if (isAdmin && status !== 'approved') { %>
+<section class="panel" id="duyet-phieu"><h2>Duyệt phiếu đang chờ trong danh sách</h2>
+  <form method="post" action="/inventory/approve" class="stack" data-confirm="Duyệt TẤT CẢ <%= pendingCount %> phiếu đang chờ khớp các bộ lọc hiện tại, gồm cả các trang khác?">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="reviewVersion" value="<%= reviewVersion %>">
+    <% for (const [key, value] of Object.entries({ date, status, type, platform })) { %><input type="hidden" name="<%= key %>" value="<%= value %>"><% } %>
+    <label>Ghi chú duyệt phiếu<textarea name="note" rows="2" maxlength="500"></textarea></label>
+    <div class="actions"><button class="button" <%= pendingCount ? '' : 'disabled' %>>Duyệt <%= pendingCount %> phiếu chờ</button></div>
+    <small class="muted">Chỉ duyệt phiếu đang chờ khớp bộ lọc ngày, loại phiếu và sàn, gồm mọi trang. Phiếu đã duyệt giữ nguyên. Tồn kho đã cập nhật khi tạo phiếu; duyệt không thay đổi tồn lần nữa và không cộng công.</small>
+  </form>
+</section>
+<% } %>
+<section class="panel"><h2>Danh sách phiếu kho</h2>
   <div class="table-wrap"><table><thead><tr><th>Ngày</th><th>Loại / Sàn</th><th>Sản phẩm</th><th>Người tạo</th><th>Duyệt</th><th>Tạo / Cập nhật</th><% if (currentUser.role === 'admin') { %><th>Thao tác</th><% } %></tr></thead><tbody>
     <% for (const item of items) { %>
       <tr>
@@ -20,7 +38,6 @@
         <td><span class="badge <%= item.approvalStatus || 'approved' %>"><%= item.approvalStatus === 'pending' ? 'Chờ duyệt' : 'Đã duyệt' %></span><% if (item.approvedBy) { %><br><small><%= item.approvedBy.username %> · <%= dateTime(item.approvedAt) %></small><% } %></td>
         <td><small>Tạo: <%= dateTime(item.createdAt) %><br>Cập nhật: <%= dateTime(item.updatedAt) %></small></td>
         <% if (currentUser.role === 'admin') { %><td class="actions-cell">
-          <% if (item.approvalStatus === 'pending') { %><a href="/inventory/closing?date=<%= dateInput(item.date) %>">Chốt ngày</a><% } %>
           <a href="/inventory/<%= item._id %>/edit">Chỉnh sửa</a>
           <form method="post" action="/inventory/<%= item._id %>?_method=DELETE" data-confirm="Xóa phiếu và đảo số lượng tồn kho?"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="link-button danger">Xóa</button></form>
         </td><% } %>
@@ -28,5 +45,5 @@
     <% } %>
     <% if (!items.length) { %><tr><td colspan="<%= currentUser.role === 'admin' ? 7 : 6 %>" class="empty">Không có dữ liệu</td></tr><% } %>
   </tbody></table></div>
-  <%- include('../../partials/pagination', { base: '/inventory', page, total, limit, query: [type ? 'type=' + type : '', platform ? 'platform=' + platform : '', status ? 'status=' + status : ''].filter(Boolean).join('&') }) %>
+  <%- include('../../partials/pagination', { base: '/inventory', page, total, limit, query: filterQuery }) %>
 </section>

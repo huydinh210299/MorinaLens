@@ -1,7 +1,7 @@
 const Movement = require("../models/ImportAndExport");
-const DailyClosing = require("../models/DailyClosing");
+const MonthlyAdsClosing = require("../models/MonthlyAdsClosing");
+const { monthRange } = require("../utils/businessDate");
 const pricing = require("./pricingService");
-const input = require("../utils/input");
 
 function costBeforeAds(snapshot) {
   if (!snapshot || !Number.isFinite(snapshot.unitRevenue)) return null;
@@ -20,12 +20,12 @@ function costBeforeAds(snapshot) {
 function emptyTotals() {
   return { revenue: 0, costBeforeAds: 0, cost: 0, adsCost: 0, profit: 0, quantity: 0, orders: 0, unpricedItems: 0 };
 }
-function summarizeMovements(movements, closings = []) {
+function summarizeMovements(movements, monthlyAds = []) {
   const totals = emptyTotals();
   const byPlatform = { shopee: emptyTotals(), tiktok: emptyTotals() };
   const byDay = new Map();
   const dayRow = (day) => {
-    if (!byDay.has(day)) byDay.set(day, { ...emptyTotals(), day, adsRecorded: false });
+    if (!byDay.has(day)) byDay.set(day, { ...emptyTotals(), day });
     return byDay.get(day);
   };
   for (const movement of movements) {
@@ -47,15 +47,12 @@ function summarizeMovements(movements, closings = []) {
       }
     }
   }
-  // A daily expense is deducted once, even on a day without sales.
-  for (const closing of closings) {
-    const daily = dayRow(new Date(closing.date).toISOString().slice(0, 10));
-    daily.adsRecorded = true;
+  // Monthly installments are deducted once, without allocating them to days.
+  for (const closing of monthlyAds) {
     for (const platform of ["shopee", "tiktok"]) {
       const amount = closing[platform + "Ads"];
       totals.adsCost += amount;
       byPlatform[platform].adsCost += amount;
-      daily.adsCost += amount;
     }
   }
   for (const target of [totals, ...Object.values(byPlatform), ...byDay.values()]) {
@@ -63,21 +60,16 @@ function summarizeMovements(movements, closings = []) {
     target.profit = target.revenue - target.cost;
   }
   const days = [...byDay.values()].sort((a, b) => b.day.localeCompare(a.day));
-  totals.unclosedDays = days.filter((row) => row.orders > 0 && !row.adsRecorded).length;
-  return { totals, byPlatform, byDay: days };
+  return { totals, byPlatform, byDay: days, adsRecorded: monthlyAds.length > 0 };
 }
 async function getMonthlyReport(month) {
-  input.month(month);
-  const [year, number] = month.split("-").map(Number);
-  const start = new Date(Date.UTC(year, number - 1, 1));
-  const end = new Date(Date.UTC(year, number, 1));
-  const range = { $gte: start, $lt: end };
-  const [movements, closings, pendingCount] = await Promise.all([
+  const range = monthRange(month);
+  const [movements, monthlyAds, pendingCount] = await Promise.all([
     Movement.find({ type: "export", approvalStatus: "approved", source: { $ne: "product_update" }, date: range }).lean(),
-    DailyClosing.find({ date: range }).lean(),
+    MonthlyAdsClosing.find({ month }).lean(),
     Movement.countDocuments({ approvalStatus: "pending", date: range })
   ]);
-  const report = summarizeMovements(movements, closings);
+  const report = summarizeMovements(movements, monthlyAds);
   report.pendingCount = pendingCount;
   return report;
 }

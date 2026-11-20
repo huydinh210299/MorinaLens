@@ -21,7 +21,7 @@ const date = (value, label = "Ngày") => {
   return result;
 };
 const month = (value) => {
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(value ?? ""))) throw new AppError("Tháng lương phải có dạng YYYY-MM.");
+  if (typeof value !== "string" || !/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) throw new AppError("Tháng phải có dạng YYYY-MM.");
   return String(value);
 };
 const page = (value) => Math.max(1, Math.min(100000, parseInt(value, 10) || 1));

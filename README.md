@@ -15,6 +15,10 @@
 
 - Quản trị viên có thể chọn **Nhân bản** trong danh sách sản phẩm, nhập SKU mới, tên mới và tồn đầu kỳ. Giá nhập, giá bán Shopee/TikTok, cấu hình Ads và ghi chú được lấy từ sản phẩm gốc khi lưu. SKU mới phải duy nhất; sản phẩm mới có tồn đầu kỳ riêng và không sao chép lịch sử kho.
 
+## Phân trang
+
+Các danh sách và bảng lịch sử có phân trang thống nhất **20 dòng/trang**, giữ bộ lọc khi chuyển trang và tự về trang hợp lệ khi số liệu thay đổi. Thanh phân trang luôn hiển thị cả khi danh sách rỗng hoặc chỉ có một trang. Áp dụng cho sản phẩm, kho, nhân viên, lịch sử Ads, doanh thu theo ngày, lịch sử hoa hồng/lương và các danh sách chấm công còn giữ route cũ. Lịch sử hoa hồng và lương trên cùng trang có số trang riêng. Tổng Ads, doanh thu, lợi nhuận và phạm vi duyệt kho vẫn tính trên toàn bộ dữ liệu phù hợp, không chỉ trang đang xem.
+
 ## Chạy cục bộ
 
 Yêu cầu Node.js 22+ và MongoDB. MongoDB standalone dùng luồng ghi tuần tự với hoàn tác khi có lỗi; MongoDB Atlas/replica set dùng transaction cho phiếu kho nhiều SKU.
@@ -134,7 +138,7 @@ Phiếu xuất tự lấy Ads từ sản phẩm trên sàn đã chọn. Sản ph
 
 Mỗi dòng phiếu **xuất** lưu `items[].saleSnapshot` gồm phiên bản công thức (`pricingVersion`), giá bán (`listPrice`), giá nhập (`purchasePrice`), tỷ lệ Ads (`adsPercentApplied`), tiền Ads (`unitAdsCost`), giá bán thực, tổng chi phí và lợi nhuận trên từng đơn vị. Toàn bộ 10 cấu hình phí nằm chung trong `saleSnapshot.config`. Tính lại bằng `pricing.calculate(listPrice, purchasePrice, config, adsPercentApplied, pricingVersion ?? 1)`; phiên bản 1 vẫn diễn giải voucher theo phần trăm và dùng công thức thuế/Ads cũ. Phiếu mới dùng phiên bản 2. Snapshot mới có thêm `unitCostBeforeAds` lưu giá nhập và các phí, chưa gồm Ads. `unitAdsCost` và tỷ lệ Ads là dữ liệu tham khảo tính giá. Báo cáo loại Ads ước tính khỏi snapshot cũ trước khi trừ Ads thực tế, không đổi dữ liệu lịch sử của phiếu. Phiếu cũ thiếu dữ liệu để tách chi phí được báo riêng.
 
-Báo cáo tháng chỉ cộng phiếu xuất **đã duyệt** theo ngày phiếu; phiếu chờ duyệt, phiếu hoàn và điều chỉnh tồn không ảnh hưởng báo cáo. Sửa số lượng giữ snapshot; thêm SKU hoặc đổi sàn lấy giá/cấu hình mới. Phiếu cũ giữ nguyên kết quả lịch sử; dòng thiếu snapshot được báo riêng. Doanh thu và các phí vẫn theo giá/cấu hình đã lưu, chưa phải đối soát tiền thực nhận từ sàn; tiền Ads là chi phí thực tế đã nhập theo ngày.
+Báo cáo tháng chỉ cộng phiếu xuất **đã duyệt** theo ngày phiếu; phiếu chờ duyệt, phiếu hoàn và điều chỉnh tồn không ảnh hưởng báo cáo. Sửa số lượng giữ snapshot; thêm SKU hoặc đổi sàn lấy giá/cấu hình mới. Phiếu cũ giữ nguyên kết quả lịch sử; dòng thiếu snapshot được báo riêng. Doanh thu và các phí vẫn theo giá/cấu hình đã lưu, chưa phải đối soát tiền thực nhận từ sàn; tiền Ads là tổng chi phí thực tế đã chốt cho tháng được chọn.
 
 ## Lưu ý kho
 
@@ -144,10 +148,14 @@ Tồn đầu kỳ nhập khi tạo sản phẩm. Sau đó có thể thay đổi 
 
 Deploy lên VPS Morina qua GitHub Actions: [DEPLOY_VPS.md](DEPLOY_VPS.md). Production dùng `lens.morina.click` và database `morina-lens` mới, không sao chép dữ liệu local.
 
-## Chốt cuối ngày và quảng cáo thực tế
+## Chốt Ads theo tháng và duyệt phiếu kho
 
-Admin mở **Chốt ngày** (`/inventory/closing`), chọn ngày, kiểm tra danh sách rồi nhập tổng tiền Ads Shopee và TikTok thực tế của cả ngày. Cả hai ô bắt buộc; nhập 0 nếu không chạy. Nút **Lưu Ads và duyệt … phiếu** duyệt tất cả phiếu chờ duyệt của ngày đã chọn, gồm mọi trang, loại phiếu và người tạo. Chốt không thay đổi tồn kho lần nữa và không cộng công.
+Admin mở **Chốt Ads tháng** (`/inventory/ads`), chọn tháng cần xem hoặc tháng tính chi phí khi lưu. Mỗi lần nhập tiền Shopee/TikTok là **một khoản phát sinh được cộng thêm**, cho phép chốt nhiều lần trong cùng tháng và chốt cho tháng trước. Không cho ghi vào tháng tương lai. Cả hai ô tiền bắt buộc; nhập 0 nếu không chạy. Ví dụ đã chốt 1.000.000đ, sau đó phát sinh thêm 500.000đ thì lần tiếp theo chỉ nhập 500.000đ; tổng Ads tháng là 1.500.000đ. Trang hiển thị tổng theo sàn và lịch sử từng lần chốt (tiền, ghi chú, người và thời điểm).
 
-Collection mới **`dailyclosings`** có khóa duy nhất `date`, số tiền `shopeeAds`, `tiktokAds`, ghi chú, người chốt `closedBy`, thời điểm `closedAt` và mã lần chốt `batchId`. App tạo index khi seed/khởi động. Chốt lại cập nhật tổng Ads, không cộng dồn; phiếu mới phát sinh sau khi chốt vẫn chờ duyệt cho đến lần chốt tiếp theo. Nếu danh sách phiếu hoặc lần chốt thay đổi trong lúc mở trang, người dùng cần tải lại để kiểm tra trước khi lưu.
+Collection **`monthlyadsclosings`** lưu `month`, `shopeeAds`, `tiktokAds`, `note`, `closedBy`, `closedAt`; tháng không có khóa duy nhất. Mỗi form có `requestId` duy nhất để gửi lại cùng yêu cầu không cộng trùng. App tạo index khi seed/khởi động. Tiền Ads chỉ lưu và tổng hợp theo tháng.
 
-Báo cáo khấu trừ Ads thực tế đúng một lần theo ngày/sàn, kể cả ngày không có đơn. Ngày có doanh thu mà chưa ghi nhận Ads được đánh dấu **Chưa nhập**, báo cáo còn tạm tính; không tự thay bằng tỷ lệ Ads của sản phẩm. Phiếu và trạng thái đã duyệt trước thay đổi này được giữ nguyên. Mọi phiếu mới đều phải được duyệt qua chốt ngày; không còn nút duyệt từng phiếu riêng lẻ.
+Báo cáo trừ tổng Ads tháng đúng một lần theo sàn, kể cả tháng không có đơn. Lợi nhuận tháng = doanh thu − giá nhập và phí − tổng Ads đã ghi nhận. Tháng chưa có khoản Ads được đánh dấu tạm tính, phân biệt với đã nhập 0; không tự thay bằng tỷ lệ Ads sản phẩm. Bảng ngày chỉ hiển thị **lãi trước Ads**, không phân bổ Ads tháng vào từng ngày.
+
+**Kho hàng** (`/inventory`) gộp tạo, xem và duyệt phiếu trên cùng một trang. Mặc định hiển thị cả phiếu chờ duyệt và đã duyệt, có phân trang, cột ngày và thông tin người/thời điểm duyệt. Có thể kết hợp bộ lọc ngày, loại phiếu, sàn và trạng thái **Tất cả / Chờ duyệt / Đã duyệt**; **Xem tất cả** bỏ các bộ lọc. Admin duyệt ngay trên trang kho: nút duyệt chỉ xử lý phiếu đang chờ khớp mọi bộ lọc, gồm tất cả các trang, giữ nguyên phiếu đã duyệt. Bộ lọc được giữ sau khi lưu và chuyển trang. Nhân viên xem danh sách, tạo phiếu xuất/hoàn, không có thao tác duyệt. Link cũ `/inventory/approvals` chuyển về trang kho và giữ bộ lọc; không còn trang duyệt riêng trong điều hướng.
+
+Khi duyệt nhiều ngày, mỗi ngày lưu một bản trong **`inventoryapprovals`**, cùng `batchId` cho lần duyệt đó. Collection chỉ lưu ngày, ghi chú, người duyệt `reviewedBy`, thời điểm `reviewedAt` và `batchId`; không có trường tiền Ads. Duyệt phiếu không đổi tồn kho lần nữa và không cộng công. Nếu danh sách phiếu, phạm vi lọc hoặc lần duyệt thay đổi sau khi mở trang, cần tải lại để kiểm tra. Phiếu mới phát sinh sau khi duyệt vẫn chờ lần duyệt tiếp theo; không có nút duyệt lẻ.

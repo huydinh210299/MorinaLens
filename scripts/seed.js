@@ -4,7 +4,8 @@ const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const User = require("../models/User");
 const Configuration = require("../models/Configuration");
-const DailyClosing = require("../models/DailyClosing");
+const InventoryApproval = require("../models/InventoryApproval");
+const MonthlyAdsClosing = require("../models/MonthlyAdsClosing");
 const { defaults, systemDefaults } = require("../utils/configuration");
 const { migratePricingConfiguration } = require("../services/configurationService");
 
@@ -26,7 +27,8 @@ async function seed() {
     await Configuration.updateOne({ platform: "system", key }, { $setOnInsert: { platform: "system", key, label, value, unit } }, { upsert: true });
   }
   await migratePricingConfiguration();
-  await DailyClosing.init();
+  await InventoryApproval.init();
+  await MonthlyAdsClosing.init();
   console.log("Đã kiểm tra admin, 10 cấu hình Shopee và tỷ lệ hoa hồng nhân viên.");
 }
 if (require.main === module) connectDB().then(seed).catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => mongoose.disconnect());

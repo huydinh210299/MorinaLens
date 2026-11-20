@@ -1,1 +1,21 @@
-<% if (total > limit) { const max = Math.ceil(total / limit); %><nav class="pagination" aria-label="Phân trang"><span>Trang <%= page %> / <%= max %> · <%= total %> bản ghi</span><% if (page > 1) { %><a href="<%= base %>?page=<%= page - 1 %><%= query ? '&' + query : '' %>">Trước</a><% } %><% if (page < max) { %><a href="<%= base %>?page=<%= page + 1 %><%= query ? '&' + query : '' %>">Sau</a><% } %></nav><% } %>
+<%
+  const max = Math.max(1, Math.ceil(total / limit));
+  const current = Math.max(1, Math.min(page, max));
+  const key = typeof pageParam === 'undefined' ? 'page' : pageParam;
+  const section = typeof anchor === 'undefined' ? '' : anchor;
+  const url = (number) => {
+    const params = new URLSearchParams({ [key]: String(number) });
+    for (const [name, value] of new URLSearchParams(query || '')) if (name !== key) params.append(name, value);
+    return base + '?' + params.toString() + (section ? '#' + encodeURIComponent(section) : '');
+  };
+  const numbers = [...new Set([1, current - 1, current, current + 1, max])].filter(number => number >= 1 && number <= max).sort((a,b) => a - b);
+%>
+<nav class="pagination" aria-label="Phân trang">
+  <span>Trang <%= current %> / <%= max %> · <%= total %> bản ghi</span>
+  <% if (current > 1) { %><a href="<%= url(current - 1) %>" rel="prev">Trước</a><% } else { %><span aria-disabled="true">Trước</span><% } %>
+  <% for (let index = 0; index < numbers.length; index++) { const number = numbers[index]; %>
+    <% if (index && number - numbers[index - 1] > 1) { %><span aria-hidden="true">…</span><% } %>
+    <% if (number === current) { %><span aria-current="page"><%= number %></span><% } else { %><a href="<%= url(number) %>" aria-label="Trang <%= number %>"><%= number %></a><% } %>
+  <% } %>
+  <% if (current < max) { %><a href="<%= url(current + 1) %>" rel="next">Sau</a><% } else { %><span aria-disabled="true">Sau</span><% } %>
+</nav>

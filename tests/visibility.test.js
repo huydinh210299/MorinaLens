@@ -11,6 +11,7 @@ const view = (name, locals) => ejs.renderFile(path.join(__dirname, "..", "views"
   dateInput: () => "2026-11-03",
   csrfToken: "test-token",
   page: 1, total: 1, limit: 20,
+  date: "", today: "2026-11-20", pendingCount: 1, approvedCount: 0, reviewVersion: "test-review-version",
   ...locals
 });
 
@@ -74,4 +75,18 @@ test("form phiếu có số tồn cho từng SKU và vùng hiển thị ước t
   assert.match(html, /data-quantity="8"/);
   assert.match(html, /class="stock-preview muted" aria-live="polite"/);
   assert.match(html, /Số tồn đã tính cả phiếu đang chờ duyệt/);
+});
+
+test("trang kho chỉ admin có form duyệt, thanh điều hướng chỉ có một mục Kho hàng", async () => {
+  const data = { date: "", type: "", platform: "", status: "", items: [] };
+  const staff = await view("inventory/index.ejs", data);
+  const admin = await view("inventory/index.ejs", { ...data, currentUser: { role: "admin" } });
+  assert.doesNotMatch(staff, /action="\/inventory\/approve"/);
+  assert.match(admin, /action="\/inventory\/approve"/);
+  assert.doesNotMatch(admin, /\/inventory\/approvals/);
+  const layout = await ejs.renderFile(path.join(__dirname, "../views/layouts/main.ejs"), {
+    title: "Kho hàng", currentUser: { role: "admin", username: "admin" }, csrfToken: "csrf", message: "", error: "", body: ""
+  });
+  assert.equal((layout.match(/href="\/inventory"/g) || []).length, 1);
+  assert.doesNotMatch(layout, /\/inventory\/approvals/);
 });
