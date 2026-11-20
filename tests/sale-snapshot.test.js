@@ -78,7 +78,7 @@ test("phiếu xuất lưu đủ đầu vào và tính lại độc lập với c
   const report = summarizeMovements([{ ...state.movement.toObject(), approvalStatus: "approved" }]);
   assert.equal(report.totals.revenue, recalculated.sale * 2);
   assert.ok(Math.abs(report.totals.profit - (recalculated.profit + recalculated.ads) * 2) < 1e-8);
-  assert.equal(report.totals.adsCost, 0);
+  assert.equal(report.totals.cost, report.totals.costBeforeAds);
   assert.equal(snapshot.unitCostBeforeAds, snapshot.unitCost - snapshot.unitAdsCost);
 });
 

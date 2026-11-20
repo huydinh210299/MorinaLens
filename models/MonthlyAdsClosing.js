@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+// Chỉ giữ schema cho dữ liệu lịch sử; tính năng chốt Ads đã được gỡ.
 const schema = new mongoose.Schema({
   month: { type: String, required: true, match: /^\d{4}-(0[1-9]|1[0-2])$/, index: true },
   shopeeAds: { type: Number, required: true, min: 0, max: 1e12, validate: Number.isSafeInteger },

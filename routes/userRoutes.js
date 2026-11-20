@@ -4,7 +4,8 @@ const timekeeping = require("../controllers/timekeepingController");
 const { adminOnly, requireAuth } = require("../middleware/auth");
 const { wrap } = require("../middleware/errors");
 router.use(requireAuth);
-router.get("/commission", wrap(controller.ownCommission));
+// Các URL tính năng đã gỡ không được rơi vào route /:id hoặc ghi thêm dữ liệu.
+router.all(["/commission", "/:id/commission/close"], (req, res) => res.sendStatus(404));
 router.get("/timekeeping", wrap(timekeeping.index));
 router.post("/timekeeping", wrap(timekeeping.save));
 router.put("/timekeeping/:entryId", wrap(timekeeping.save));
@@ -18,7 +19,6 @@ router.get("/new", wrap(controller.form));
 router.post("/", wrap(controller.create));
 router.get("/:id", wrap(controller.detail));
 router.get("/:id/edit", wrap(controller.form));
-router.post("/:id/commission/close", wrap(controller.closeCommission));
 router.put("/:id", wrap(controller.update));
 router.delete("/:id", wrap(controller.remove));
 router.post("/:id/orders", wrap(controller.addOrder));

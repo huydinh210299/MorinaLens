@@ -26,6 +26,7 @@ const payrollSchema = new mongoose.Schema({
   payments: { type: [payrollPaymentSchema], default: [] },
   note: { type: String, default: "" }
 }, { timestamps: true });
+// Chỉ giữ schema để bảo toàn lịch sử đã chốt trước khi gỡ tính năng.
 const commissionSchema = new mongoose.Schema({
   month: { type: String, required: true, match: /^\d{4}-(0[1-9]|1[0-2])$/ },
   revenue: { type: Number, required: true, min: 0 },

@@ -9,7 +9,7 @@ function currentMonthBangkok() {
 }
 async function index(req, res) {
   const month = input.month(req.query.month || currentMonthBangkok());
-  const report = await revenueService.getMonthlyReport(month);
+  const report = await revenueService.getMonthlyReport(month, { platform: "shopee" });
   res.render("pages/revenue/index", { title: "Doanh thu và lợi nhuận", month, report, dailyPage: paginateRows(report.byDay, req.query.page) });
 }
 module.exports = { index };

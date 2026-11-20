@@ -5,7 +5,6 @@ const ejs = require("ejs");
 const mongoose = require("mongoose");
 const Movement = require("../models/ImportAndExport");
 const InventoryApproval = require("../models/InventoryApproval");
-const MonthlyAdsClosing = require("../models/MonthlyAdsClosing");
 const Product = require("../models/Product");
 const User = require("../models/User");
 const service = require("../services/inventoryApprovalService");
@@ -42,7 +41,6 @@ function fixture(t, rows = [movement(), movement("import"), movement("return")])
   };
   t.mock.method(Movement, "find", (filter) => query(state.rows.filter((row) => matches(row, filter))));
   t.mock.method(Movement, "countDocuments", async (filter) => state.rows.filter((row) => matches(row, filter)).length);
-  t.mock.method(MonthlyAdsClosing, "find", () => query([]));
   const sameDay = (row, filter) => !filter.date || row.date.getTime() === filter.date.getTime();
   t.mock.method(InventoryApproval, "find", (filter) => query(state.approvals.filter((row) => sameDay(row, filter))));
   t.mock.method(InventoryApproval, "findOneAndUpdate", async (filter, update) => {
@@ -102,7 +100,7 @@ test("duyệt tất cả loại phiếu đúng ngày, không ghi Ads, không đ�
   assert.equal(otherDay.approvalStatus, "pending");
   const report = await getMonthlyReport("2020-01");
   assert.equal(report.totals.profit, 70000);
-  assert.equal(report.adsRecorded, false);
+  assert.equal(report.adsRecorded, undefined);
   assert.equal(report.pendingCount, 1);
 });
 
@@ -114,7 +112,7 @@ test("duyệt thêm phiếu phát sinh, không duyệt trùng bằng bản xem t
   state.rows.push(movement());
   assert.equal((await service.approve(await formData({ note: "Duyệt thêm" }), admin)).approvedCount, 1);
   assert.equal(state.approval.note, "Duyệt thêm");
-  assert.equal((await getMonthlyReport("2020-01")).totals.adsCost, 0);
+  assert.equal((await getMonthlyReport("2020-01")).totals.profit, 140000);
   assert.equal(state.rows.filter((row) => row.approvalStatus === "pending").length, 0);
 });
 
@@ -129,12 +127,12 @@ test("chặn duyệt khi có phiếu mới hoặc phiếu bị sửa sau lúc m�
   assert.equal(state.approval, null);
 });
 
-test("duyệt kho không có phiếu không đánh dấu tháng đã ghi nhận Ads", async (t) => {
+test("duyệt kho không có phiếu giữ báo cáo rỗng", async (t) => {
   const state = fixture(t, []);
   const result = await service.approve(await formData(), admin);
   assert.equal(result.approvedCount, 0);
   assert.equal(state.approval, null);
-  assert.equal((await getMonthlyReport("2020-01")).adsRecorded, false);
+  assert.equal((await getMonthlyReport("2020-01")).totals.profit, 0);
 });
 
 test("duyệt kho kiểm tra ngày thực, không tương lai, chỉ admin và ghi chú hợp lệ", async (t) => {
@@ -347,7 +345,7 @@ test("model duyệt kho có ngày duy nhất và không chứa các trường Ad
   for (const field of ["shopeeAds", "tiktokAds", "adsRecorded", "legacyAdsNote"]) assert.equal(InventoryApproval.schema.path(field), undefined);
 });
 
-test("trang duyệt kho không nhập Ads, báo cáo tính Ads tháng và thoát ghi chú", async (t) => {
+test("trang duyệt kho không nhập Ads, báo cáo hiển thị lãi trước Ads và thoát ghi chú", async (t) => {
   fixture(t);
   const data = await service.getReview({ date: day });
   data.items[0].note = "<script>bad()</script>";
@@ -355,13 +353,14 @@ test("trang duyệt kho không nhập Ads, báo cáo tính Ads tháng và thoát
   const html = await ejs.renderFile(path.join(__dirname, "../views/pages/inventory/index.ejs"), { ...helpers, ...data });
   assert.doesNotMatch(html, /name="shopeeAds"/);
   assert.doesNotMatch(html, /name="tiktokAds"/);
-  assert.match(html, /Chốt Ads theo tháng/);
+  assert.doesNotMatch(html, /Chốt Ads|\/inventory\/ads/);
   assert.match(html, /name="reviewVersion"/);
   assert.ok(!html.includes("<script>bad"));
   const report = await getMonthlyReport("2020-01");
   const reportHtml = await ejs.renderFile(path.join(__dirname, "../views/pages/revenue/index.ejs"), { ...helpers, month: "2020-01", report,
     dailyPage: require("../utils/pagination").paginateRows(report.byDay) });
-  assert.match(reportHtml, /Tiền quảng cáo thực tế/);
+  assert.match(reportHtml, /Lãi trước Ads/);
+  assert.doesNotMatch(reportHtml, /Chốt Ads|\/inventory\/ads/);
   assert.match(reportHtml, /phiếu kho đang chờ duyệt/);
 });
 

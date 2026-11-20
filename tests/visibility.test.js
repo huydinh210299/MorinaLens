@@ -42,11 +42,15 @@ test("trang phiếu kho staff không hiện ảnh chụp doanh thu và lợi nhu
 
 test("trang tổng quan staff không hiện trạng thái cấu hình sàn", async () => {
   const html = await view("dashboard/index.ejs", {
-    products: 1, lowStock: 0, movements: 1, ordersThisMonth: 1
+    products: 1, outOfStock: 0, ordersThisMonth: 1
   });
   assert.match(html, /Xem sản phẩm/);
+  assert.match(html, /SKU hết hàng/);
+  assert.match(html, /<span>Sản phẩm<\/span>/);
+  assert.doesNotMatch(html, /SKU tồn|<span>Phiếu kho<\/span>/);
   assert.ok(!html.includes("Sàn bán hàng"));
   assert.ok(!html.includes("Cấu hình phí"));
+  assert.doesNotMatch(html, /Hoa hồng|\/users\/commission/);
 });
 
 for (const role of ["admin", "staff"]) {

@@ -2,17 +2,17 @@
 <div class="page-head"><div><p class="eyebrow">Sổ tay MorinaLens</p><h1>Hướng dẫn phí và lợi nhuận</h1><p class="muted">Hiểu từng khoản bị trừ, tiền nhận từ sàn và cách ứng dụng ước tính lợi nhuận.</p></div><a class="button secondary" href="/configuration">Mở cấu hình</a></div>
 <nav class="guide-nav" aria-label="Mục lục hướng dẫn"><a href="#dong-tien">Hiểu dòng tiền</a><a href="#cac-loai-phi">Các loại phí</a><a href="#vi-du">Ví dụ Shopee</a><a href="#voucher">Nhập voucher</a><a href="#luu-y">Lưu ý khi sử dụng</a></nav>
 
-<section class="panel guide" id="dong-tien"><h2>1. Từ giá bán đến lợi nhuận</h2><p class="guide-note">Các công thức Ads theo tỷ lệ và ví dụ dưới đây chỉ dùng tham khảo khi tính giá sản phẩm. Báo cáo doanh thu trừ tiền quảng cáo thực tế theo tháng/sàn được nhập tại <a href="/inventory/ads">Chốt Ads tháng</a>, không trừ thêm Ads ước tính theo tỷ lệ.</p>
+<section class="panel guide" id="dong-tien"><h2>1. Từ giá bán đến lợi nhuận</h2><p class="guide-note">Các công thức Ads theo tỷ lệ và ví dụ dưới đây chỉ dùng tham khảo khi tính giá sản phẩm. Báo cáo doanh thu hiển thị lãi trước Ads. Chi phí Ads thực tế được theo dõi trên Shopee, không nhập hoặc khấu trừ trong MorinaLens.</p>
   <ol class="guide-steps">
     <li><strong>Giá bán → Doanh thu:</strong> trừ số tiền voucher shop (trợ giá của shop). Giá nhập vào đã gồm thuế, không cộng thêm thuế vào giá.</li>
     <li><strong>Doanh thu → Thực nhận ước tính:</strong> trừ phí sàn và thuế. Đây là khoản tương ứng dòng “Doanh thu đơn hàng ước tính” trên Shopee.</li>
     <li><strong>Thực nhận → Lợi nhuận:</strong> trừ Ads, giá nhập, đóng gói và dự phòng rủi ro. Tiền nhận từ sàn chưa phải lợi nhuận.</li>
   </ol>
-  <p class="guide-note">Trong báo cáo MorinaLens, “Doanh thu” là giá sau voucher shop, trước phí sàn và thuế. Ads được tính trên <strong>thực nhận ước tính sau phí sàn và thuế</strong>.</p>
+  <p class="guide-note">Trong báo cáo MorinaLens, “Doanh thu” là giá sau voucher shop, trước phí sàn và thuế. Khi tham khảo giá sản phẩm, Ads được ước tính trên <strong>thực nhận ước tính sau phí sàn và thuế</strong>.</p>
 </section>
 
 <section class="panel guide" id="cac-loai-phi"><h2>2. Mỗi khoản phí được tính như thế nào?</h2>
-  <p>Bảng dưới hiển thị cấu hình đang dùng của shop. Thay đổi các mức này tại <a href="/configuration">Cấu hình</a>; TikTok cần nhập đủ các khoản trước khi tính lợi nhuận.</p>
+  <p>Bảng dưới hiển thị cấu hình đang dùng của shop. Thay đổi các mức này tại <a href="/configuration">Cấu hình</a>.</p>
   <% const explanations = {
     tax: ['% doanh thu', 'Tính trên doanh thu sau voucher shop, trước khi trừ phí sàn. Với cấu hình 1,5%, ứng dụng tách GTGT 1% và TNCN 0,5%, làm tròn từng khoản.'],
     transactionFee: ['% doanh thu', 'Phí xử lý giao dịch của sàn, tính trên giá sau voucher shop trong phép ước tính hiện tại.'],
@@ -25,8 +25,8 @@
     risk: ['% doanh thu', 'Khoản dự phòng rủi ro của shop, tính trên doanh thu sau voucher. Không phải khoản Shopee thu trực tiếp.'],
     shopVoucher: ['Số tiền ₫', 'Tiền shop giảm cho khách, chính là trợ giá của shop. Trừ một lần khỏi giá bán trước khi tính phí và thuế; không trừ thêm lần nữa vào chi phí.']
   }; %>
-  <div class="table-wrap"><table class="guide-fees"><caption class="muted">Cấu hình hiện tại của từng sàn</caption><thead><tr><th scope="col">Khoản</th><th scope="col">Cơ sở tính</th><th scope="col">Ý nghĩa</th><th scope="col">Shopee</th><th scope="col">TikTok</th></tr></thead><tbody>
-  <% for (const [key, meta] of Object.entries(keys)) { %><tr><th scope="row"><%= meta.label %></th><td><%= explanations[key][0] %></td><td><%= explanations[key][1] %></td><% for (const config of [shopee, tiktok]) { %><td class="guide-amount"><%= config?.[key] == null ? 'Chưa cấu hình' : meta.unit === 'percent' ? config[key] + '%' : money(config[key]) %></td><% } %></tr><% } %>
+  <div class="table-wrap"><table class="guide-fees"><caption class="muted">Cấu hình hiện tại của từng sàn</caption><thead><tr><th scope="col">Khoản</th><th scope="col">Cơ sở tính</th><th scope="col">Ý nghĩa</th><th scope="col">Shopee</th></tr></thead><tbody>
+  <% for (const [key, meta] of Object.entries(keys)) { %><tr><th scope="row"><%= meta.label %></th><td><%= explanations[key][0] %></td><td><%= explanations[key][1] %></td><% for (const config of [shopee]) { %><td class="guide-amount"><%= config?.[key] == null ? 'Chưa cấu hình' : meta.unit === 'percent' ? config[key] + '%' : money(config[key]) %></td><% } %></tr><% } %>
   </tbody></table></div>
   <p class="guide-note"><strong>“Phụ phí” là dòng tổng:</strong> phí cố định + phí dịch vụ + phí xử lý giao dịch. Trong đơn mẫu, phí dịch vụ gồm Voucher Xtra và hạ tầng. Không cộng dòng tổng và các dòng con thêm lần nữa. Thuế và voucher shop nằm riêng.</p>
 </section>
@@ -67,7 +67,7 @@
     <dt>“Điểm hòa vốn” trên danh sách sản phẩm</dt><dd>Đây là tổng chi phí tại giá bán đang nhập, gồm giá nhập, phí sàn, Ads, thuế, đóng gói và rủi ro. Trong ví dụ: <%= preciseMoney(p.cost) %>. Giá cần bán để lợi nhuận bằng 0 là chỉ số riêng trong “Xem cách tính”, ví dụ khoảng <%= money(p.breakEvenPrice) %>; có thể lệch vài đồng do làm tròn phí.</dd>
     <dt>Giới hạn của phép ước tính</dt><dd>Ứng dụng tính theo một đơn vị sản phẩm, gồm cả các khoản tiền cố định. Phí hạ tầng thực tế theo đơn cần được phân bổ nếu đơn có nhiều sản phẩm. Phép tính hiện chưa cộng ship người mua trả, chưa trừ khuyến mãi ngân hàng và chưa tự áp trần phí theo chương trình. Hãy đối chiếu chi tiết doanh thu của sàn khi chốt số liệu thực tế.</dd>
     <dt>Cập nhật cấu hình và phiếu xuất cũ</dt><dd>Cấu hình mới áp dụng khi tính giá sản phẩm và tạo dòng xuất mới. Phiếu đã lưu giữ giá, phí và tiền Ads tại lúc xuất; sửa số lượng giữ dữ liệu cũ, đổi SKU hoặc sàn lấy giá và cấu hình hiện tại. Báo cáo chỉ cộng phiếu xuất đã duyệt.</dd>
-    <dt>Mức phí theo từng sàn</dt><dd>Các mức 16,5%, 5,5%, 6% và thuế 1,5% trong ví dụ là giả định để tái hiện đơn Shopee của shop. Bảng cấu hình phía trên mới là mức ứng dụng đang dùng. Không tự áp mức Shopee cho TikTok; nhập theo thông tin thực tế của sàn.</dd>
+    <dt>Mức phí theo từng sàn</dt><dd>Các mức 16,5%, 5,5%, 6% và thuế 1,5% trong ví dụ là giả định để tái hiện đơn Shopee của shop. Bảng cấu hình phía trên mới là mức ứng dụng đang dùng. Nhập phí Shopee theo thông tin thực tế của shop.</dd>
   </dl>
   <div class="actions"><a class="button" href="/configuration">Kiểm tra cấu hình</a><a class="button secondary" href="/products">Xem giá và lợi nhuận</a></div>
 </section>

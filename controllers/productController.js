@@ -12,25 +12,25 @@ async function index(req, res) {
   const { page: currentPage, limit, skip } = paginate(total, req.query.page);
   const isAdmin = req.user.role === "admin";
   const query = Product.find(filter).sort({ updatedAt: -1, _id: -1 }).skip(skip).limit(limit);
-  if (!isAdmin) query.select("sku name quantity shopeePrice tiktokPrice");
+  if (!isAdmin) query.select("sku name quantity shopeePrice");
   const items = await query.lean();
   if (!isAdmin) {
     return res.render("pages/products/index", { title: "Sản phẩm", items, total, page: currentPage, limit, q });
   }
-  const [shopee, tiktok] = await Promise.all([pricing.getConfig(), pricing.getConfig("tiktok")]);
+  const shopee = await pricing.getConfig();
   res.render("pages/products/index", { title: "Sản phẩm",
-    items: items.map((item) => ({ ...item, pricing: { shopee: pricing.calculateProduct(item, shopee, "shopee"), tiktok: pricing.calculateProduct(item, tiktok, "tiktok") } })),
-    total, page: currentPage, limit, q, shopee, tiktok, configKeys: keys, hasCompleteConfig: pricing.hasCompleteConfig });
+    items: items.map((item) => ({ ...item, pricing: { shopee: pricing.calculateProduct(item, shopee, "shopee") } })),
+    total, page: currentPage, limit, q, shopee, configKeys: keys, hasCompleteConfig: pricing.hasCompleteConfig });
 }
 function escapeRegex(value) { return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
 async function form(req, res) {
-  const [item, shopeeConfig, tiktokConfig] = await Promise.all([
+  const [item, shopeeConfig] = await Promise.all([
     req.params.id ? Product.findById(req.params.id).lean() : Promise.resolve(null),
-    pricing.getConfig("shopee"), pricing.getConfig("tiktok")
+    pricing.getConfig("shopee")
   ]);
   if (req.params.id && !item) throw new AppError("Không tìm thấy sản phẩm.", 404);
   res.render("pages/products/form", { title: item ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm", item,
-    adsDefaults: { shopee: shopeeConfig?.ads, tiktok: tiktokConfig?.ads } });
+    adsDefaults: { shopee: shopeeConfig?.ads } });
 }
 async function create(req, res) { await service.create(req.body); res.redirect("/products?message=" + encodeURIComponent("Đã thêm sản phẩm.")); }
 async function cloneForm(req, res) {

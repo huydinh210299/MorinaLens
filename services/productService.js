@@ -12,7 +12,7 @@ function parseIdentity(body) {
 }
 
 function parse(body, creating = false) {
-  if (!Object.hasOwn(body, "shopeePrice") || !Object.hasOwn(body, "tiktokPrice")) {
+  if (!Object.hasOwn(body, "shopeePrice")) {
     throw new AppError("Biểu mẫu giá theo sàn chưa đầy đủ. Hãy tải lại trang sản phẩm.");
   }
   const parseAds = (platform, label) => ({
@@ -23,10 +23,14 @@ function parse(body, creating = false) {
     ...parseIdentity(body),
     purchasePrice: input.number(body.purchasePrice, "Giá nhập"),
     shopeePrice: input.optionalNumber(body.shopeePrice, "Giá bán Shopee"),
-    tiktokPrice: input.optionalNumber(body.tiktokPrice, "Giá bán TikTok"),
-    ads: { shopee: parseAds("shopee", "Shopee"), tiktok: parseAds("tiktok", "TikTok") },
+    ads: { shopee: parseAds("shopee", "Shopee") },
     note: input.optionalText(body.note)
   };
+  // Form hiện tại chỉ có Shopee; không ghi đè dữ liệu sàn đang tạm ẩn.
+  if (Object.hasOwn(body, "tiktokPrice")) {
+    result.tiktokPrice = input.optionalNumber(body.tiktokPrice, "Giá bán TikTok");
+    result.ads.tiktok = parseAds("tiktok", "TikTok");
+  }
   if (creating) result.quantity = input.number(body.quantity ?? 0, "Tồn đầu kỳ", { integer: true });
   return result;
 }
@@ -63,6 +67,7 @@ async function update(id, body, actor) {
       }
       const before = item.toObject();
       const difference = quantity - item.quantity;
+      data.ads = { ...before.ads, ...data.ads };
       Object.assign(item, data, { quantity });
       let saved = false;
       try {

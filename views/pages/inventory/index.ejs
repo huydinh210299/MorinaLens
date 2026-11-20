@@ -1,14 +1,14 @@
 <% const isAdmin = currentUser.role === 'admin'; const filterQuery = [date ? 'date=' + date : '', type ? 'type=' + type : '', platform ? 'platform=' + platform : '', status ? 'status=' + status : ''].filter(Boolean).join('&'); %>
 <div class="page-head">
-  <div><p class="eyebrow">Kho hàng</p><h1>Kho hàng</h1><p class="muted">Tạo, xem và theo dõi phiếu nhập, xuất, hoàn hàng<%= isAdmin ? '; duyệt phiếu ngay tại đây' : '' %>.</p></div>
-  <div class="actions"><% if (isAdmin) { %><a class="button secondary" href="/inventory/ads<%= date ? '?month=' + date.slice(0, 7) : '' %>">Chốt Ads theo tháng</a><% } %><a class="button" href="/inventory/new">Tạo phiếu kho</a></div>
+  <div><p class="eyebrow">Kho hàng</p><h1>Kho hàng</h1><p class="muted">Tạo, xem và theo dõi phiếu nhập, xuất, hoàn hàng Shopee<%= isAdmin ? '; duyệt phiếu ngay tại đây' : '' %>.</p></div>
+  <div class="actions"><a class="button" href="/inventory/new">Tạo phiếu kho</a></div>
 </div>
 <section class="panel">
-  <p class="muted">Mọi phiếu nhập, xuất và hoàn của admin hoặc nhân viên đều chờ duyệt. Tồn kho cập nhật ngay; quản trị viên duyệt phiếu kho và chốt tiền quảng cáo theo tháng. Phiếu kho không tự cộng công.</p>
+  <p class="muted">Mọi phiếu nhập, xuất và hoàn của admin hoặc nhân viên đều chờ duyệt. Tồn kho cập nhật ngay; quản trị viên duyệt phiếu kho. Phiếu kho không tự cộng công.</p>
   <form method="get" class="filter">
     <label>Ngày (không bắt buộc)<input type="date" name="date" max="<%= today %>" value="<%= date %>"></label>
     <label>Loại phiếu<select name="type"><option value="">Tất cả</option><option value="import" <%= type === 'import' ? 'selected' : '' %>>Nhập</option><option value="export" <%= type === 'export' ? 'selected' : '' %>>Xuất</option><option value="return" <%= type === 'return' ? 'selected' : '' %>>Hoàn hàng</option></select></label>
-    <label>Sàn<select name="platform"><option value="">Cả hai sàn</option><option value="shopee" <%= platform === 'shopee' ? 'selected' : '' %>>Shopee</option><option value="tiktok" <%= platform === 'tiktok' ? 'selected' : '' %>>TikTok</option></select></label>
+    <input type="hidden" name="platform" value="shopee">
     <label>Trạng thái duyệt<select name="status"><option value="" <%= status === '' ? 'selected' : '' %>>Tất cả</option><option value="pending" <%= status === 'pending' ? 'selected' : '' %>>Chờ duyệt</option><option value="approved" <%= status === 'approved' ? 'selected' : '' %>>Đã duyệt</option></select></label>
     <button class="button secondary">Lọc</button>
     <a class="button secondary" href="/inventory">Xem tất cả</a>
@@ -32,7 +32,7 @@
     <% for (const item of items) { %>
       <tr>
         <td><%= dateOnly(item.date) %></td>
-        <td><span class="badge <%= item.type %>"><%= { import: 'Nhập', export: 'Xuất', return: 'Hoàn hàng' }[item.type] %></span><br><small><%= item.platform === 'tiktok' ? 'TikTok' : 'Shopee' %></small><% if (item.source === 'product_update') { %><br><small class="muted">Điều chỉnh từ sản phẩm</small><% } %></td>
+        <td><span class="badge <%= item.type %>"><%= { import: 'Nhập', export: 'Xuất', return: 'Hoàn hàng' }[item.type] %></span><br><small>Shopee</small><% if (item.source === 'product_update') { %><br><small class="muted">Điều chỉnh từ sản phẩm</small><% } %></td>
         <td><% for (const row of item.items) { %><div><strong><%= row.sku %></strong> × <%= row.amount %></div><% } %><% if (item.note && (item.source === 'product_update' || item.type === 'return')) { %><small class="muted"><%= item.note %></small><% } %></td>
         <td><%= item.createdBy?.username || '—' %></td>
         <td><span class="badge <%= item.approvalStatus || 'approved' %>"><%= item.approvalStatus === 'pending' ? 'Chờ duyệt' : 'Đã duyệt' %></span><% if (item.approvedBy) { %><br><small><%= item.approvedBy.username %> · <%= dateTime(item.approvedAt) %></small><% } %></td>

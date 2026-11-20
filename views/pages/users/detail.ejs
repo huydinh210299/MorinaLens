@@ -1,50 +1,14 @@
 <div class="page-head">
-  <div><p class="eyebrow">Nhân sự</p><h1><%= own ? 'Hoa hồng của tôi' : item.username %></h1><p class="muted"><%= item.username %> · <%= item.role === 'admin' ? 'Quản trị' : 'Nhân viên' %> · <%= item.active ? 'Đang hoạt động' : 'Đã khóa' %></p></div>
-  <% if (!own) { %><div class="actions"><a class="button secondary" href="/users?month=<%= month %>">Quay lại</a><a class="button" href="/users/<%= item._id %>/edit">Chỉnh sửa</a></div><% } %>
+  <div><p class="eyebrow">Nhân sự</p><h1><%= item.username %></h1><p class="muted"><%= item.role === 'admin' ? 'Quản trị' : 'Nhân viên' %> · <%= item.active ? 'Đang hoạt động' : 'Đã khóa' %></p></div>
+  <div class="actions"><a class="button secondary" href="/users">Quay lại</a><a class="button" href="/users/<%= item._id %>/edit">Chỉnh sửa</a></div>
 </div>
-<section class="panel">
-  <h2>Hoa hồng theo tháng</h2>
-  <form method="get" class="inline-form"><label>Tháng<input type="month" name="month" required value="<%= month %>"></label><button class="button secondary">Xem</button></form>
-  <p class="muted">Hoa hồng = doanh thu phiếu xuất bán đã duyệt do nhân viên tạo trong tháng × tỷ lệ cấu hình. Doanh thu lấy từ giá trị đã lưu trên phiếu, nhân với số lượng sản phẩm. Phiếu nhập, hoàn hàng và điều chỉnh tồn không phát sinh hoa hồng.</p>
-  <div class="stats">
-    <div class="stat"><strong><%= money(commission.revenue) %></strong><span>Doanh thu tính hoa hồng · <%= month %></span></div>
-    <div class="stat"><strong><%= commission.percent %>%</strong><span>Tỷ lệ <%= commission.closed ? 'đã chốt' : 'cấu hình hiện tại' %></span></div>
-    <div class="stat"><strong><%= money(commission.amount) %></strong><span>Hoa hồng <%= commission.closed ? 'đã chốt' : 'tạm tính' %> · làm tròn đến đồng</span></div>
-  </div>
-  <% if (commission.closed) { %>
-    <p><span class="badge approved">Đã chốt</span> · <%= dateTime(commission.closedAt) %> · <%= commission.closedBy?.username || 'Admin' %></p>
-    <p class="muted">Doanh thu, tỷ lệ và hoa hồng đã chốt được giữ cố định khi cấu hình hoặc phiếu kho thay đổi. Chốt hoa hồng ghi nhận số phải trả, chưa ghi nhận thanh toán.</p>
-  <% } else { %>
-    <p><span class="badge pending">Chưa chốt</span></p>
-    <% if (commission.pendingCount) { %><p class="alert">Còn <%= commission.pendingCount %> phiếu xuất chờ duyệt trong tháng. Cần duyệt hết trước khi chốt.</p><% } %>
-    <% if (commission.unpricedItems) { %><p class="alert">Có sản phẩm thiếu dữ liệu doanh thu. Cần kiểm tra phiếu xuất trước khi chốt.</p><% } %>
-    <% if (!own && item.role === 'staff') { %>
-      <form method="post" action="/users/<%= item._id %>/commission/close" class="inline-form" data-confirm="Chốt cố định doanh thu, tỷ lệ và hoa hồng của nhân viên trong tháng này?">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="month" value="<%= month %>"><input type="hidden" name="reviewVersion" value="<%= commission.reviewVersion %>">
-        <button class="button" <%= commission.pendingCount || commission.unpricedItems || month > dateInput().slice(0,7) ? 'disabled' : '' %>>Chốt hoa hồng tháng <%= month %></button>
-      </form>
-      <p class="muted">Sau khi chốt, số liệu tháng này được giữ cố định. Chốt hoa hồng ghi nhận số phải trả, chưa ghi nhận thanh toán.</p>
-    <% } %>
-  <% } %>
-</section>
-<section class="panel" id="commission-history">
-  <h2>Lịch sử chốt hoa hồng</h2>
-  <div class="table-wrap"><table><thead><tr><th>Tháng</th><th>Doanh thu</th><th>Tỷ lệ</th><th>Hoa hồng đã chốt</th><th>Người chốt</th><th>Thời điểm</th></tr></thead><tbody>
-    <% for (const row of commissionHistory.items) { %>
-      <tr><td><a href="?month=<%= row.month %>"><%= row.month %></a></td><td><%= money(row.revenue) %></td><td><%= row.percent %>%</td><td><%= money(row.amount) %></td><td><%= row.closedBy?.username || 'Admin' %></td><td><%= dateTime(row.closedAt) %></td></tr>
-    <% } %>
-    <% if (!commissionHistory.items.length) { %><tr><td colspan="6" class="empty">Chưa có tháng đã chốt.</td></tr><% } %>
-  </tbody></table></div>
-  <%- include('../../partials/pagination', { ...commissionHistory, base: historyBase, query: 'month=' + month + '&payrollPage=' + payrollHistory.page, pageParam: 'commissionPage', anchor: 'commission-history' }) %>
-</section>
-<% if (!own && item.payroll?.length) { %>
-<section class="panel" id="payroll-history"><details <%= payrollHistory.page > 1 ? 'open' : '' %>><summary>Lịch sử lương trước khi chuyển sang hoa hồng</summary>
-  <p class="muted">Dữ liệu cũ được giữ nguyên và không cộng vào hoa hồng theo doanh thu.</p>
+<% if (item.payroll?.length) { %>
+<section class="panel" id="payroll-history"><details <%= payrollHistory.page > 1 ? 'open' : '' %>><summary>Lịch sử lương cũ</summary>
   <div class="table-wrap"><table><thead><tr><th>Tháng</th><th>Lương cũ</th><th>Đã thanh toán</th><th>Lịch sử thanh toán</th></tr></thead><tbody>
     <% for (const row of payrollHistory.items) { %>
       <tr><td><%= row.month %></td><td><%= money(row.amount) %></td><td><%= money(row.paidTotal) %></td><td><% for (const payment of row.payments || []) { %><div><%= money(payment.amount) %> · <%= dateTime(payment.paidAt) %> · <%= payment.paidBy?.username || 'Admin' %></div><% } %><% if (row.note) { %><small><%= row.note %></small><% } %></td></tr>
     <% } %>
   </tbody></table></div>
-  <%- include('../../partials/pagination', { ...payrollHistory, base: historyBase, query: 'month=' + month + '&commissionPage=' + commissionHistory.page, pageParam: 'payrollPage', anchor: 'payroll-history' }) %>
+  <%- include('../../partials/pagination', { ...payrollHistory, base: historyBase, query: '', pageParam: 'payrollPage', anchor: 'payroll-history' }) %>
 </details></section>
 <% } %>

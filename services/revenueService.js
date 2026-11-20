@@ -1,5 +1,4 @@
 const Movement = require("../models/ImportAndExport");
-const MonthlyAdsClosing = require("../models/MonthlyAdsClosing");
 const { monthRange } = require("../utils/businessDate");
 const pricing = require("./pricingService");
 
@@ -18,9 +17,9 @@ function costBeforeAds(snapshot) {
   return Number.isFinite(estimatedAds) ? cost - estimatedAds : null;
 }
 function emptyTotals() {
-  return { revenue: 0, costBeforeAds: 0, cost: 0, adsCost: 0, profit: 0, quantity: 0, orders: 0, unpricedItems: 0 };
+  return { revenue: 0, costBeforeAds: 0, cost: 0, profit: 0, quantity: 0, orders: 0, unpricedItems: 0 };
 }
-function summarizeMovements(movements, monthlyAds = []) {
+function summarizeMovements(movements) {
   const totals = emptyTotals();
   const byPlatform = { shopee: emptyTotals(), tiktok: emptyTotals() };
   const byDay = new Map();
@@ -47,29 +46,22 @@ function summarizeMovements(movements, monthlyAds = []) {
       }
     }
   }
-  // Monthly installments are deducted once, without allocating them to days.
-  for (const closing of monthlyAds) {
-    for (const platform of ["shopee", "tiktok"]) {
-      const amount = closing[platform + "Ads"];
-      totals.adsCost += amount;
-      byPlatform[platform].adsCost += amount;
-    }
-  }
+  // Ads thực tế được theo dõi trên sàn; báo cáo chỉ tính lãi trước Ads.
   for (const target of [totals, ...Object.values(byPlatform), ...byDay.values()]) {
-    target.cost = target.costBeforeAds + target.adsCost;
+    target.cost = target.costBeforeAds;
     target.profit = target.revenue - target.cost;
   }
   const days = [...byDay.values()].sort((a, b) => b.day.localeCompare(a.day));
-  return { totals, byPlatform, byDay: days, adsRecorded: monthlyAds.length > 0 };
+  return { totals, byPlatform, byDay: days };
 }
-async function getMonthlyReport(month) {
+async function getMonthlyReport(month, { platform } = {}) {
   const range = monthRange(month);
-  const [movements, monthlyAds, pendingCount] = await Promise.all([
-    Movement.find({ type: "export", approvalStatus: "approved", source: { $ne: "product_update" }, date: range }).lean(),
-    MonthlyAdsClosing.find({ month }).lean(),
-    Movement.countDocuments({ approvalStatus: "pending", date: range })
+  const platformFilter = platform ? { platform } : {};
+  const [movements, pendingCount] = await Promise.all([
+    Movement.find({ type: "export", approvalStatus: "approved", source: { $ne: "product_update" }, date: range, ...platformFilter }).lean(),
+    Movement.countDocuments({ approvalStatus: "pending", date: range, ...platformFilter })
   ]);
-  const report = summarizeMovements(movements, monthlyAds);
+  const report = summarizeMovements(movements);
   report.pendingCount = pendingCount;
   return report;
 }
