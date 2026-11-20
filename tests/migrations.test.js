@@ -161,7 +161,13 @@ test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lầ
   }
   t.mock.method(Product, "createIndexes", async () => {});
   const find = t.mock.method(Product, "find", ({ sku }) => ({ select: () => ({ lean: async () =>
-    [...products.values()].filter((p) => sku.$in.includes(p.sku)).map((p) => structuredClone(p)) }) }));
+    [...products.values()].filter((p) => (sku instanceof RegExp ? sku.test(p.sku) : sku.$in.includes(p.sku))).map((p) => structuredClone(p)) }) }));
+  t.mock.method(Movement, "exists", async () => null);
+  t.mock.method(Product, "create", async (p) => products.set(p.sku, { ...p, _id: String(p._id) }));
+  t.mock.method(Product, "deleteOne", async ({ sku, _id, quantity }) => {
+    const p = products.get(sku);
+    return { deletedCount: Number(p?._id === _id && p.quantity === quantity && products.delete(sku)) };
+  });
   t.mock.method(Movement, "updateMany", async () => ({ modifiedCount: 0 }));
   t.mock.method(Product, "updateOne", async ({ sku, quantity, _id, name }, { $setOnInsert, $set }) => {
     if ($set) {
@@ -214,14 +220,18 @@ test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lầ
   assert.equal(products.get("BEAR_SNOW_BUBBLE_GRAY").quantity, 2);
   assert.equal(products.has("BEAR_MALLOW_BROWN"), false);
   assert.equal(products.get("BEAR_SWEET_MOCHI_BROWN").quantity, 1);
-  assert.equal(products.size, 60);
+  assert.equal(first[6].status, "completed");
+  assert.equal(first[6].result.removedSkus.length, 11);
+  assert.deepEqual([...products.values()].filter((p) => /1D/i.test(p.sku)).map((p) => [p.sku, p.quantity]),
+    [["1D-NAU", 3], ["1D-XAM", 5], ["1D-DEN", 2]]);
+  assert.equal(products.size, 52);
   assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 6);
   assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 1);
   assert.equal(products.get("DREAMMOON_PINK_SUMMER").purchasePrice, 25000);
   assert.equal(products.get("DREAMMOON_PINK_SUMMER").shopeePrice, 73000);
   const checkAds = () => {
     for (const product of products.values()) {
-      const isLens = /^(BEAR_|DREAMMOON_)/.test(product.sku);
+      const isLens = /^(BEAR_|DREAMMOON_|1D-)/.test(product.sku);
       assert.equal(product.ads.shopee.enabled, isLens);
       assert.equal(product.ads.tiktok.enabled, false);
     }
@@ -238,7 +248,7 @@ test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lầ
   assert.equal(second[3].status, "skipped");
   assert.equal(second[4].status, "skipped");
   assert.equal(second[5].status, "skipped");
-  assert.equal(find.mock.callCount(), 5);
+  assert.equal(find.mock.callCount(), 7);
   assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 3);
   assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 0);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
@@ -252,17 +262,17 @@ test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lầ
   const upgrade = await main(["--apply"]);
   assert.equal(upgrade[0].status, "skipped");
   assert.equal(upgrade[1].status, "completed");
-  assert.equal(upgrade[1].result.updated, 41);
+  assert.equal(upgrade[1].result.updated, 30);
   assert.equal(upgrade[2].status, "skipped");
   assert.equal(upgrade[3].status, "skipped");
   assert.equal(upgrade[4].status, "skipped");
   assert.equal(upgrade[5].status, "skipped");
-  assert.equal(find.mock.callCount(), 5);
+  assert.equal(find.mock.callCount(), 7);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
   checkAds();
   const output = logs.mock.calls.map((call) => call.arguments[0]).filter((line) => line.startsWith("{"));
   assert.deepEqual(output.map((line) => JSON.parse(line).status),
-    ["completed", "completed", "completed", "completed", "completed", "completed",
-      "skipped", "skipped", "skipped", "skipped", "skipped", "skipped",
-      "skipped", "completed", "skipped", "skipped", "skipped", "skipped"]);
+    ["completed", "completed", "completed", "completed", "completed", "completed", "completed",
+      "skipped", "skipped", "skipped", "skipped", "skipped", "skipped", "skipped",
+      "skipped", "completed", "skipped", "skipped", "skipped", "skipped", "skipped"]);
 });

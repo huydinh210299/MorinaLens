@@ -11,4 +11,4 @@ module.exports = [{
   }
 }, require("./enable-bear-lens-shopee-ads"), require("./import-dreammoon"),
 require("./update-dreammoon-quantities"), require("./import-lens-accessories"),
-require("./correct-bear-lens-products")];
+require("./correct-bear-lens-products"), require("./replace-daily-lens")];
