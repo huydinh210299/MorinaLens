@@ -141,6 +141,7 @@ test("từ chối ID trùng trước khi chạy bất cứ migration nào", asyn
 test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lần sau qua cùng lịch sử", async (t) => {
   const mongoose = require("mongoose");
   const Product = require("../models/Product");
+  const Movement = require("../models/ImportAndExport");
   const { main } = require("../scripts/migrate");
   const db = history();
   const products = new Map();
@@ -159,16 +160,20 @@ test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lầ
     t.mock.method(Migration, method, db.model[method]);
   }
   t.mock.method(Product, "createIndexes", async () => {});
-  const find = t.mock.method(Product, "find", () => ({ select: () => ({ lean: async () => [...products.values()] }) }));
-  t.mock.method(Product, "updateOne", async ({ sku, quantity }, { $setOnInsert, $set }) => {
+  const find = t.mock.method(Product, "find", ({ sku }) => ({ select: () => ({ lean: async () =>
+    [...products.values()].filter((p) => sku.$in.includes(p.sku)).map((p) => structuredClone(p)) }) }));
+  t.mock.method(Movement, "updateMany", async () => ({ modifiedCount: 0 }));
+  t.mock.method(Product, "updateOne", async ({ sku, quantity, _id, name }, { $setOnInsert, $set }) => {
     if ($set) {
       const product = products.get(sku);
-      if (!product || product.quantity !== quantity) return { matchedCount: 0 };
+      if (!product || (quantity !== undefined && product.quantity !== quantity) ||
+          (_id !== undefined && product._id !== _id) || (name !== undefined && product.name !== name)) return { matchedCount: 0 };
       Object.assign(product, structuredClone($set));
+      if ($set.sku) { products.delete(sku); products.set($set.sku, product); }
       return { matchedCount: 1, modifiedCount: 1 };
     }
     if (products.has(sku)) return { upsertedCount: 0 };
-    products.set(sku, structuredClone($setOnInsert));
+    products.set(sku, { ...structuredClone($setOnInsert), _id: sku });
     return { upsertedCount: 1 };
   });
   t.mock.method(Product, "updateMany", async (filter, update) => {
@@ -202,6 +207,13 @@ test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lầ
   assert.equal(first[4].status, "completed");
   assert.equal(first[4].result.created, 4);
   assert.equal(first[4].result.totalQuantity, 219);
+  assert.equal(first[5].id, "20261120_001_bear_lens_received_products");
+  assert.equal(first[5].status, "completed");
+  assert.equal(first[5].result.updated, 2);
+  assert.equal(products.has("BEAR_CLOUDY_GRAY"), false);
+  assert.equal(products.get("BEAR_SNOW_BUBBLE_GRAY").quantity, 2);
+  assert.equal(products.has("BEAR_MALLOW_BROWN"), false);
+  assert.equal(products.get("BEAR_SWEET_MOCHI_BROWN").quantity, 1);
   assert.equal(products.size, 60);
   assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 6);
   assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 1);
@@ -225,29 +237,32 @@ test("bộ chạy chung nhập lens và sản phẩm phụ trợ, skip các lầ
   assert.equal(second[2].status, "skipped");
   assert.equal(second[3].status, "skipped");
   assert.equal(second[4].status, "skipped");
-  assert.equal(find.mock.callCount(), 4);
+  assert.equal(second[5].status, "skipped");
+  assert.equal(find.mock.callCount(), 5);
   assert.equal(products.get("DREAMMOON_CHOCO_NATURE").quantity, 3);
   assert.equal(products.get("DREAMMOON_GRAY_BEIGE").quantity, 0);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
   assert.equal(db.documents.get("20261111_001_bear_lens").status, "completed");
   // Mô phỏng local/VPS chỉ đã hoàn tất bước nhập ở phiên bản trước.
   db.documents.delete("20261111_002_bear_lens_shopee_ads");
+  const originalBearSkus = new Set(require("../scripts/migrate-bear-lens").prepareProducts().map((p) => p.sku));
   for (const product of products.values()) {
-    if (product.sku.startsWith("BEAR_")) product.ads.shopee.enabled = false;
+    if (originalBearSkus.has(product.sku)) product.ads.shopee.enabled = false;
   }
   const upgrade = await main(["--apply"]);
   assert.equal(upgrade[0].status, "skipped");
   assert.equal(upgrade[1].status, "completed");
-  assert.equal(upgrade[1].result.updated, 43);
+  assert.equal(upgrade[1].result.updated, 41);
   assert.equal(upgrade[2].status, "skipped");
   assert.equal(upgrade[3].status, "skipped");
   assert.equal(upgrade[4].status, "skipped");
-  assert.equal(find.mock.callCount(), 4);
+  assert.equal(upgrade[5].status, "skipped");
+  assert.equal(find.mock.callCount(), 5);
   assert.equal(products.get("BEAR_AMBER_BROWN").quantity, 0);
   checkAds();
   const output = logs.mock.calls.map((call) => call.arguments[0]).filter((line) => line.startsWith("{"));
   assert.deepEqual(output.map((line) => JSON.parse(line).status),
-    ["completed", "completed", "completed", "completed", "completed",
-      "skipped", "skipped", "skipped", "skipped", "skipped",
-      "skipped", "completed", "skipped", "skipped", "skipped"]);
+    ["completed", "completed", "completed", "completed", "completed", "completed",
+      "skipped", "skipped", "skipped", "skipped", "skipped", "skipped",
+      "skipped", "completed", "skipped", "skipped", "skipped", "skipped"]);
 });

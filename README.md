@@ -91,6 +91,24 @@ npm run migrate:lens-accessories -- --apply  # Nhập sản phẩm và lưu lị
 
 Lệnh riêng chỉ chạy migration này. Migration cũng được đăng ký cuối bộ chạy chung, nên `npm run dev` hoặc `npm run build` sẽ tự áp dụng nếu chưa hoàn tất.
 
+### Sửa mẫu Bear lens theo hàng thực nhận
+
+Migration `20261120_001_bear_lens_received_products` đổi tên và SKU trên cùng bản ghi sản phẩm:
+
+| SKU cũ | SKU mới | Tên mới |
+| --- | --- | --- |
+| BEAR_CLOUDY_GRAY | BEAR_SNOW_BUBBLE_GRAY | Snow Bubble Gray |
+| BEAR_MALLOW_BROWN | BEAR_SWEET_MOCHI_BROWN | Sweet Mochi Brown |
+
+Giữ nguyên ID, tồn kho hiện tại, giá và Ads; không đặt lại tồn theo ảnh kiểm kê. SKU trong các dòng phiếu kho tham chiếu đúng ID sản phẩm cũng được cập nhật, giữ số lượng, snapshot giá và trạng thái duyệt.
+
+```bash
+npm run migrate:bear-lens-received-products -- --dry-run  # Xem trước
+npm run migrate:bear-lens-received-products -- --apply    # Áp dụng và lưu lịch sử
+```
+
+Migration được thêm cuối bộ chạy chung, tự áp dụng khi dev/build và bỏ qua khi đã `completed`. Dừng trước khi ghi nếu thiếu cả SKU cũ/mới hoặc đồng thời có cả hai; không tự gộp tồn. Tạm ngưng thao tác kho khi áp dụng vì MongoDB standalone có thể ghi một phần trước lỗi. Có thể chạy lại sau lỗi để hoàn tất cả phần đổi sản phẩm và SKU phiếu kho.
+
 ### Lịch sử migration
 
 Collection MongoDB **`migrations`** lưu mỗi script theo `_id` cố định, mô tả, trạng thái (`running`, `completed`, `failed`), thời điểm bắt đầu/hoàn tất, kết quả và lỗi. Bear lens có ID `20261111_001_bear_lens`. Cả lệnh riêng ở trên và bộ chạy chung đều kiểm tra collection này: `completed` thì bỏ qua toàn bộ script; chưa có thì chạy và chỉ đánh dấu hoàn tất sau khi thành công. Migration lỗi được ghi `failed` để lần chạy sau thử lại. Nếu trước đó đã nhập Bear lens bằng script cũ, lần đầu bộ chạy mới sẽ bỏ qua các SKU có sẵn và ghi nhận migration hoàn tất.

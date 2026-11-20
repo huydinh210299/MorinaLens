@@ -12,6 +12,7 @@
     "seed": "node scripts/seed.js",
     "migrate": "node scripts/migrate.js",
     "migrate:bear-lens": "node scripts/migrate-bear-lens.js",
+    "migrate:bear-lens-received-products": "node scripts/migrate-bear-lens-received-products.js",
     "migrate:dreammoon": "node scripts/migrate-dreammoon.js",
     "migrate:dreammoon-quantities": "node scripts/migrate-dreammoon-quantities.js",
     "migrate:lens-accessories": "node scripts/migrate-lens-accessories.js",
